@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoolGuard — Surveillance Dashboard</title>
+{% load static %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #080c10;
+    --surface:   #0d1520;
+    --surface2:  #111e2e;
+    --border:    #1a3050;
+    --accent:    #00d4ff;
+    --accent2:   #0088bb;
+    --danger:    #ff3b3b;
+    --warn:      #ffaa00;
+    --ok:        #00e676;
+    --text:      #ccdde8;
+    --muted:     #4a6a80;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-main: 'Barlow', sans-serif;
+    --font-cond: 'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,212,255,0.015) 2px,
+      rgba(0,212,255,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 60px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bg);
+    font-size: 18px;
+    animation: pulse-icon 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-icon {
+    0%, 100% { filter: drop-shadow(0 0 6px var(--accent)); }
+    50% { filter: drop-shadow(0 0 14px var(--accent)); }
+  }
+
+  .logo-text {
+    font-family: var(--font-cond);
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ok);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--ok);
+    border-radius: 50%;
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  #clock {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  #notif-bell {
+    position: relative;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--muted);
+    transition: color .2s;
+    background: none;
+    border: none;
+  }
+
+  #notif-bell:hover { color: var(--accent); }
+
+  #notif-count {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    background: var(--danger);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    height: calc(100vh - 60px);
+  }
+
+  /* ── SIDEBAR ── */
+  nav {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nav-section {
+    padding: 6px 20px 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 12px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: .5px;
+    transition: all .15s;
+    border-left: 3px solid transparent;
+    text-transform: uppercase;
+  }
+
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(0,212,255,.06);
+  }
+
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* ── MAIN ── */
+  main {
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; flex-direction: column; gap: 20px; }
+  .page.active { display: flex; }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: var(--font-cond);
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin-left: 8px;
+  }
+
+  /* ── STAT CARDS ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .stat-card.accent::before  { background: var(--accent); }
+  .stat-card.danger::before  { background: var(--danger); }
+  .stat-card.warn::before    { background: var(--warn); }
+  .stat-card.ok::before      { background: var(--ok); }
+
+  .stat-card:hover { border-color: var(--accent2); }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: var(--font-cond);
+    font-weight: 900;
+    font-size: 38px;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── GRID 2-COL ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .card-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ── CAMERA FEED ── */
+  .camera-wrap {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16/9;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .camera-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: radial-gradient(ellipse at center, #0a1520 0%, #000 70%);
+  }
+
+  .camera-placeholder .cam-icon { font-size: 48px; opacity: .4; }
+
+  .camera-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* corner brackets */
+  .camera-overlay::before,
+  .camera-overlay::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: .6;
+  }
+
+  .camera-overlay::before { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+  .camera-overlay::after  { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+  .cam-badge {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ok);
+    background: rgba(0,0,0,.7);
+    padding: 3px 8px;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ── NOTIFICATION ITEM ── */
+  .notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .notif-list::-webkit-scrollbar { width: 4px; }
+  .notif-list::-webkit-scrollbar-track { background: transparent; }
+  .notif-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .notif-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border-left: 3px solid var(--border);
+    animation: slide-in .3s ease-out;
+    position: relative;
+  }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .notif-item.high   { border-left-color: var(--danger); }
+  .notif-item.medium { border-left-color: var(--warn); }
+  .notif-item.low    { border-left-color: var(--ok); }
+
+  .notif-icon { font-size: 22px; flex-shrink: 0; padding-top: 2px; }
+
+  .notif-body { flex: 1; min-width: 0; }
+
+  .notif-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    text-transform: capitalize;
+  }
+
+  .notif-msg { font-size: 12px; color: var(--text); margin-top: 2px; }
+
+  .notif-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid;
+  }
+
+  .badge.high   { color: var(--danger); border-color: var(--danger); background: rgba(255,59,59,.1); }
+  .badge.medium { color: var(--warn);   border-color: var(--warn);   background: rgba(255,170,0,.1); }
+  .badge.low    { color: var(--ok);     border-color: var(--ok);     background: rgba(0,230,118,.1); }
+
+  .ack-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all .15s;
+    white-space: nowrap;
+    align-self: flex-start;
+  }
+
+  .ack-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .data-table th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 8px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(26,48,80,.5);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .data-table tr:hover td { background: var(--surface2); }
+
+  .data-table tr.acked td { opacity: .45; }
+
+  .class-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    background: rgba(0,212,255,.08);
+    border: 1px solid rgba(0,212,255,.2);
+    color: var(--accent);
+    font-size: 11px;
+    text-transform: capitalize;
+  }
+
+  /* ── CHART CANVAS ── */
+  .chart-wrap {
+    position: relative;
+    height: 180px;
+  }
+
+  /* ── TOAST POPUP ── */
+  #toast-container {
+    position: fixed;
+    top: 72px;
+    right: 20px;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--danger);
+    padding: 14px 18px;
+    max-width: 360px;
+    pointer-events: all;
+    animation: toast-in .3s ease-out;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+
+  .toast.medium { border-left-color: var(--warn); }
+  .toast.low    { border-left-color: var(--ok); }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .toast-title {
+    font-family: var(--font-cond);
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .toast-body { font-size: 12px; color: var(--text); margin-top: 4px; }
+
+  .toast-close {
+    position: absolute;
+    top: 8px; right: 10px;
+    background: none; border: none;
+    color: var(--muted); cursor: pointer; font-size: 14px;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  .page-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .page-btn:hover, .page-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── DEMO CONTROLS (for testing) ── */
+  .demo-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .demo-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--warn);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .demo-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all .15s;
+    text-transform: uppercase;
+  }
+
+  .demo-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* scrollbar global */
+  main::-webkit-scrollbar { width: 6px; }
+  main::-webkit-scrollbar-track { background: transparent; }
+  main::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    <div class="logo-text">Pool<span>Guard</span></div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div> Live Monitoring</div>
+    <div id="clock">--:--:--</div>
+    <button id="notif-bell" onclick="showPage('alerts')" title="Notifications">
+      🔔
+      <span id="notif-count">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── APP ── -->
+<div class="app">
+  <!-- SIDEBAR -->
+  <nav>
+    <div class="nav-section">Monitor</div>
+    <div class="nav-item active" data-page="overview" onclick="showPage('overview')">
+      <span class="icon">⬡</span> Overview
+    </div>
+    <div class="nav-item" data-page="feed" onclick="showPage('feed')">
+      <span class="icon">📷</span> Live Feed
+    </div>
+    <div class="nav-item" data-page="alerts" onclick="showPage('alerts')">
+      <span class="icon">🚨</span> Alerts
+    </div>
+    <div class="nav-section">Data</div>
+    <div class="nav-item" data-page="history" onclick="showPage('history')">
+      <span class="icon">📋</span> History
+    </div>
+    <div class="nav-item" data-page="analytics" onclick="showPage('analytics')">
+      <span class="icon">📊</span> Analytics
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main>
+
+    <!-- ── OVERVIEW PAGE ── -->
+    <div class="page active" id="page-overview">
+      <div class="section-title">System Overview</div>
+
+      <div class="stat-grid">
+        <div class="stat-card accent">
+          <div class="stat-label">Total Detections</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-sub">all time</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">Last 24 Hours</div>
+          <div class="stat-value" id="stat-24h">0</div>
+          <div class="stat-sub">detection events</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-label">Unread Alerts</div>
+          <div class="stat-value" id="stat-unread">0</div>
+          <div class="stat-sub">require attention</div>
+        </div>
+        <div class="stat-card ok">
+          <div class="stat-label">Today</div>
+          <div class="stat-value" id="stat-today">0</div>
+          <div class="stat-sub">events so far</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Recent alerts -->
+        <div class="card">
+          <div class="card-title">
+            <span>Recent Alerts</span>
+            <span id="recent-ts" style="color:var(--muted);font-size:10px;">—</span>
+          </div>
+          <div class="notif-list" id="overview-notifs">
+            <div class="empty">No alerts yet</div>
+          </div>
+        </div>
+
+        <!-- Mini bar chart -->
+        <div class="card">
+          <div class="card-title"><span>Detections by Class</span></div>
+          <div id="class-chart-wrap" style="display:flex;flex-direction:column;gap:10px;margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <!-- Demo / testing bar -->
+      <div class="demo-bar">
+        <span class="demo-label">⚙ Test — Simulate Detection:</span>
+        <button class="demo-btn" onclick="simulate('trash')">Trash</button>
+        <button class="demo-btn" onclick="simulate('food')">Food</button>
+        <button class="demo-btn" onclick="simulate('animal')">Animal</button>
+        <button class="demo-btn" onclick="simulate('bottle')">Bottle</button>
+        <button class="demo-btn" onclick="simulate('littering')">Littering</button>
+      </div>
+    </div>
+
+    <!-- ── LIVE FEED PAGE ── -->
+    <div class="page" id="page-feed">
+      <div class="section-title">Live Camera Feed</div>
+      <div class="camera-wrap">
+        <div class="camera-placeholder">
+          <div class="cam-icon">📷</div>
+          <div>CAMERA STREAM OFFLINE</div>
+          <div style="font-size:10px;opacity:.6">Connect your YOLOv8 module to display live feed</div>
+          <div style="font-size:10px;opacity:.4;margin-top:8px;">Stream endpoint: /api/stream/ (configure in views.py)</div>
+        </div>
+        <div class="camera-overlay"></div>
+        <div class="cam-badge"><span style="width:7px;height:7px;background:var(--danger);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> REC</div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title"><span>Last Detection Snapshot</span></div>
+          <div id="last-snapshot" style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-mono);font-size:12px;">
+            No detections yet
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>Detection Status</span></div>
+          <div id="feed-latest" style="padding:8px 0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALERTS PAGE ── -->
+    <div class="page" id="page-alerts">
+      <div class="section-title">Alert Centre</div>
+      <div class="card">
+        <div class="card-title">
+          <span>Active Alerts</span>
+          <button class="demo-btn" onclick="clearAllAlerts()" style="padding:3px 10px;font-size:10px;">Clear All</button>
+        </div>
+        <div class="notif-list" id="alerts-list" style="max-height:600px;">
+          <div class="empty">No active alerts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY PAGE ── -->
+    <div class="page" id="page-history">
+      <div class="section-title">Detection History</div>
+      <div class="card">
+        <div class="card-title">
+          <span>All Events</span>
+          <span id="history-count" style="font-size:11px;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Class</th>
+                <th>Confidence</th>
+                <th>Severity</th>
+                <th>Location</th>
+                <th>Timestamp</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="8" class="empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="history-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS PAGE ── -->
+    <div class="page" id="page-analytics">
+      <div class="section-title">Analytics</div>
+
+      <div class="three-col">
+        <div class="stat-card accent">
+          <div class="stat-label">Total Events</div>
+          <div class="stat-value" id="an-total">0</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">High Severity</div>
+          <div class="stat-value" id="an-high">0</div>
+        </div>
+        <div class="stat-card ok">
+          <div class="stat-label">Avg / Day (7d)</div>
+          <div class="stat-value" id="an-avg">0</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title"><span>7-Day Trend</span></div>
+          <div class="chart-wrap">
+            <canvas id="trend-chart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>Severity Distribution</span></div>
+          <div class="chart-wrap">
+            <canvas id="severity-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>Detection Class Breakdown</span></div>
+        <div id="class-breakdown" style="display:flex;flex-direction:column;gap:10px;padding:4px 0;"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── TOAST CONTAINER ── -->
+<div id="toast-container"></div>
+
+<!-- ── CHART.JS (CDN) ── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────
+const state = {
+  lastNotifId: 0,
+  allNotifs: [],
+  histPage: 1,
+  trendChart: null,
+  sevChart: null,
+};
+
+const CLASS_ICONS = {
+  trash:    '🗑️',
+  food:     '🍔',
+  animal:   '🐾',
+  bottle:   '🍶',
+  littering:'🚫',
+};
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name)?.classList.add('active');
+  document.querySelector(`[data-page="${name}"]`)?.classList.add('active');
+  if (name === 'history') loadHistory();
+  if (name === 'analytics') loadAnalytics();
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB', {hour12: false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── SOUND ALERT ──────────────────────────────────────────────────────────
+function playAlert(severity) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = { high: [880, 660, 880], medium: [660, 550], low: [440] };
+    let t = ctx.currentTime;
+    (freqs[severity] || freqs.medium).forEach(f => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = f;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(.15, t);
+      gain.gain.exponentialRampToValueAtTime(.001, t + .18);
+      osc.start(t); osc.stop(t + .18);
+      t += .22;
+    });
+  } catch(e) {}
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function showToast(notif) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${notif.severity}`;
+  toast.style.position = 'relative';
+  toast.innerHTML = `
+    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    <div class="toast-title">${CLASS_ICONS[notif.object_class] || '⚠️'} ${notif.object_class.toUpperCase()} DETECTED</div>
+    <div class="toast-body">${notif.message}</div>
+    <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;">
+      ${notif.confidence}% confidence · ${notif.location} · ${notif.timestamp}
+    </div>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 8000);
+  playAlert(notif.severity);
+}
+
+// ── OVERVIEW NOTIF CARD ───────────────────────────────────────────────────
+function buildNotifItem(n) {
+  return `
+    <div class="notif-item ${n.severity}" id="ni-${n.id}">
+      <div class="notif-icon">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
+      <div class="notif-body">
+        <div class="notif-title">
+          ${n.object_class} &nbsp;<span class="badge ${n.severity}">${n.severity}</span>
+        </div>
+        <div class="notif-msg">${n.message}</div>
+        <div class="notif-meta">
+          <span>${n.timestamp}</span>
+          <span>${n.location}</span>
+          <span>${n.confidence}% conf</span>
+        </div>
+      </div>
+      <button class="ack-btn" onclick="acknowledge(${n.event_id}, ${n.id})">✓ Clear</button>
+    </div>`;
+}
+
+// ── ACKNOWLEDGE ───────────────────────────────────────────────────────────
+function acknowledge(eventId, notifId) {
+  fetch(`/api/events/${eventId}/acknowledge/`, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}})
+    .then(() => {
+      document.getElementById(`ni-${notifId}`)?.remove();
+      state.allNotifs = state.allNotifs.filter(n => n.id !== notifId);
+      updateUnreadBadge();
+      refreshOverviewNotifs();
+    });
+}
+
+function clearAllAlerts() {
+  state.allNotifs.forEach(n => {
+    fetch(`/api/events/${n.event_id}/acknowledge/`, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}});
+  });
+  state.allNotifs = [];
+  updateUnreadBadge();
+  refreshOverviewNotifs();
+  renderAlertsList();
+}
+
+// ── RENDER NOTIF LISTS ────────────────────────────────────────────────────
+function refreshOverviewNotifs() {
+  const el = document.getElementById('overview-notifs');
+  const al = document.getElementById('alerts-list');
+  if (!state.allNotifs.length) {
+    el.innerHTML = '<div class="empty">No alerts</div>';
+    al.innerHTML = '<div class="empty">No active alerts</div>';
+    return;
+  }
+  const recent = state.allNotifs.slice(0, 5).map(buildNotifItem).join('');
+  el.innerHTML = recent;
+  al.innerHTML = state.allNotifs.map(buildNotifItem).join('');
+  const ts = state.allNotifs[0]?.timestamp;
+  document.getElementById('recent-ts').textContent = ts || '';
+}
+
+function renderAlertsList() {
+  refreshOverviewNotifs();
+}
+
+function updateUnreadBadge() {
+  const count = state.allNotifs.length;
+  const badge = document.getElementById('notif-count');
+  const statEl = document.getElementById('stat-unread');
+  badge.textContent = count;
+  badge.style.display = count ? 'flex' : 'none';
+  if (statEl) statEl.textContent = count;
+}
+
+// ── POLLING ───────────────────────────────────────────────────────────────
+function poll() {
+  fetch(`/api/notifications/poll/?since_id=${state.lastNotifId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.notifications?.length) {
+        data.notifications.forEach(n => {
+          if (!state.allNotifs.find(x => x.id === n.id)) {
+            state.allNotifs.unshift(n);
+            showToast(n);
+          }
+          state.lastNotifId = Math.max(state.lastNotifId, n.id);
+        });
+        updateUnreadBadge();
+        refreshOverviewNotifs();
+        updateFeedLatest();
+      }
+    })
+    .catch(() => {});
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+function loadStats() {
+  fetch('/api/stats/')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('stat-total').textContent   = d.total_all;
+      document.getElementById('stat-24h').textContent     = d.total_24h;
+      document.getElementById('stat-today').textContent   = d.total_today;
+      document.getElementById('stat-unread').textContent  = d.unread_notifications;
+      const badge = document.getElementById('notif-count');
+      badge.textContent = d.unread_notifications;
+      badge.style.display = d.unread_notifications ? 'flex' : 'none';
+      renderClassChart(d.by_class);
+    });
+}
+
+// ── MINI BAR CHART (overview) ─────────────────────────────────────────────
+function renderClassChart(byClass) {
+  const el = document.getElementById('class-chart-wrap');
+  if (!byClass?.length) { el.innerHTML = '<div class="empty">No data</div>'; return; }
+  const max = Math.max(...byClass.map(c => c.count), 1);
+  el.innerHTML = byClass.map(c => `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:70px;font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:capitalize;flex-shrink:0;">
+        ${CLASS_ICONS[c.object_class] || ''} ${c.object_class}
+      </div>
+      <div style="flex:1;background:var(--surface2);height:10px;border:1px solid var(--border);">
+        <div style="width:${(c.count/max)*100}%;background:var(--accent);height:100%;transition:width .4s;"></div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--accent);width:24px;text-align:right;">${c.count}</div>
+    </div>`).join('');
+}
+
+// ── FEED LATEST ───────────────────────────────────────────────────────────
+function updateFeedLatest() {
+  const el = document.getElementById('feed-latest');
+  if (!state.allNotifs.length) { el.innerHTML = '<div class="empty">No recent detections</div>'; return; }
+  const n = state.allNotifs[0];
+  el.innerHTML = `
+    <div style="padding:10px 0;">
+      <div style="font-size:32px;text-align:center;margin-bottom:10px;">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
+      <div style="text-align:center;font-family:var(--font-cond);font-weight:700;font-size:18px;text-transform:capitalize;color:#fff;">${n.object_class}</div>
+      <div style="text-align:center;margin-top:6px;"><span class="badge ${n.severity}">${n.severity}</span></div>
+      <div style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:8px;">${n.timestamp}</div>
+      <div style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--muted);">${n.confidence}% confidence</div>
+    </div>`;
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────
+function loadHistory(page) {
+  page = page || state.histPage;
+  state.histPage = page;
+  fetch(`/api/history/?page=${page}`)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('history-count').textContent = `${d.total} events`;
+      const tbody = document.getElementById('history-tbody');
+      if (!d.events.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No events</td></tr>'; return; }
+      tbody.innerHTML = d.events.map(e => `
+        <tr class="${e.acknowledged ? 'acked' : ''}">
+          <td>#${e.id}</td>
+          <td><span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span></td>
+          <td>${e.confidence}%</td>
+          <td><span class="badge ${e.severity}">${e.severity}</span></td>
+          <td>${e.location}</td>
+          <td>${e.timestamp}</td>
+          <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Cleared' : '● Active'}</td>
+          <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id}, this)">Clear</button>` : ''}</td>
+        </tr>`).join('');
+      // Pagination
+      const pages = Math.ceil(d.total / d.per_page);
+      const pag = document.getElementById('history-pagination');
+      pag.innerHTML = Array.from({length: pages}, (_, i) =>
+        `<button class="page-btn ${i+1 === page ? 'active' : ''}" onclick="loadHistory(${i+1})">${i+1}</button>`
+      ).join('');
+    });
+}
+
+function ackFromHistory(eventId, btn) {
+  fetch(`/api/events/${eventId}/acknowledge/`, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}})
+    .then(() => loadHistory());
+}
+
+// ── ANALYTICS ─────────────────────────────────────────────────────────────
+function loadAnalytics() {
+  fetch('/api/stats/').then(r => r.json()).then(d => {
+    document.getElementById('an-total').textContent = d.total_all;
+    const highSev = d.by_severity.find(s => s.severity === 'high');
+    document.getElementById('an-high').textContent = highSev?.count || 0;
+    const total7d = d.daily.reduce((a, b) => a + b.count, 0);
+    document.getElementById('an-avg').textContent = (total7d / 7).toFixed(1);
+
+    // Trend chart
+    const tCtx = document.getElementById('trend-chart').getContext('2d');
+    if (state.trendChart) state.trendChart.destroy();
+    state.trendChart = new Chart(tCtx, {
+      type: 'bar',
+      data: {
+        labels: d.daily.map(x => x.date.slice(5)),
+        datasets: [{
+          label: 'Detections',
+          data: d.daily.map(x => x.count),
+          backgroundColor: 'rgba(0,212,255,0.25)',
+          borderColor: 'rgba(0,212,255,0.8)',
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#4a6a80', font: { family: 'Share Tech Mono', size: 10 } }, grid: { color: '#1a3050' } },
+          y: { ticks: { color: '#4a6a80', font: { family: 'Share Tech Mono', size: 10 } }, grid: { color: '#1a3050' }, beginAtZero: true }
+        }
+      }
+    });
+
+    // Severity donut
+    const sCtx = document.getElementById('severity-chart').getContext('2d');
+    if (state.sevChart) state.sevChart.destroy();
+    const sevOrder = ['high', 'medium', 'low'];
+    const sevColors = { high: '#ff3b3b', medium: '#ffaa00', low: '#00e676' };
+    const sevData = sevOrder.map(s => d.by_severity.find(x => x.severity === s)?.count || 0);
+    state.sevChart = new Chart(sCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['High', 'Medium', 'Low'],
+        datasets: [{ data: sevData, backgroundColor: sevOrder.map(s => sevColors[s]), borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#ccdde8', font: { family: 'Share Tech Mono', size: 11 }, boxWidth: 12 } } }
+      }
+    });
+
+    // Class breakdown bars
+    const cb = document.getElementById('class-breakdown');
+    const maxC = Math.max(...d.by_class.map(c => c.count), 1);
+    cb.innerHTML = d.by_class.map(c => `
+      <div style="display:grid;grid-template-columns:120px 1fr 40px;align-items:center;gap:12px;">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text);text-transform:capitalize;">
+          ${CLASS_ICONS[c.object_class] || ''} ${c.object_class}
+        </div>
+        <div style="background:var(--surface2);height:14px;border:1px solid var(--border);">
+          <div style="width:${(c.count/maxC)*100}%;background:linear-gradient(90deg,var(--accent),var(--accent2));height:100%;"></div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);text-align:right;">${c.count}</div>
+      </div>`).join('') || '<div class="empty">No data yet</div>';
+  });
+}
+
+// ── DEMO SIMULATE ─────────────────────────────────────────────────────────
+function simulate(objClass) {
+  const confidence = (0.7 + Math.random() * 0.28).toFixed(2);
+  fetch('/api/ingest/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ object_class: objClass, confidence: parseFloat(confidence), location_note: 'Pool Deck - Zone A' })
+  }).then(() => { loadStats(); });
+}
+
+// ── CSRF HELPER ───────────────────────────────────────────────────────────
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+loadStats();
+setInterval(loadStats, 30000);
+setInterval(poll, 3000);
+poll();
+</script>
+</body>
+</html>
