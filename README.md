@@ -1,3 +1,4 @@
+HEAD
 # PoolGuard — AI Pool Surveillance Dashboard
 Django web application for receiving YOLOv8 detection events and alerting pool managers.
 
@@ -109,3 +110,6 @@ pool_guardian/
 ├── pool_guardian.db    # SQLite database
 └── manage.py
 ```
+# POOL-SAFE
+Final year project  
+>>>>>>> 2e4a5336fb75fd2146d668f88a277e858651440f
