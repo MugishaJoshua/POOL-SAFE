@@ -70,5 +70,5 @@ REST_FRAMEWORK = {
     ]
 }
 
-SECRET_KEY = os.environment.get('SECRET_KEY', SECRET_KEY)
+SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
