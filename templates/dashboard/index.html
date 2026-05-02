@@ -9,16 +9,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:        #b2b7bc;
-    --surface:   #bec1c5;
-    --surface2:  #bfc2c6;
-    --border:    #a9acb1;
+    --bg:        #080c11;
+    --surface:   #060708;
+    --surface2:  #060d17;
+    --border:    #1b1c1f;
     --accent:    #00d4ff;
     --accent2:   #0088bb;
     --danger:    #ff3b3b;
     --warn:      #ffaa00;
     --ok:        #00e676;
-    --text:      #031420;
+    --text:      #3a4a56;
     --muted:     #4a6a80;
     --font-mono: 'Share Tech Mono', monospace;
     --font-main: 'Barlow', sans-serif;
@@ -31,8 +31,8 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-main);
-    font-size: 14px;
-    min-height: 100vh;
+    font-size: 18px;
+    min-height: 200vh;
     overflow-x: hidden;
   }
 
@@ -214,7 +214,7 @@
   .nav-item.active {
     color: var(--accent);
     border-left-color: var(--accent);
-    background: rgba(0,212,255,.06);
+    background: rgba(253, 255, 255, 0.06);
   }
 
   .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
@@ -286,7 +286,7 @@
 
   .stat-label {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 15px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -758,32 +758,30 @@
     </div>
 
     <!-- ── LIVE FEED PAGE ── -->
-    <div class="page" id="page-feed">
-      <div class="section-title">Live Camera Feed</div>
-      <div class="camera-wrap">
-        <div class="camera-placeholder">
-          <div class="cam-icon">📷</div>
-          <div>CAMERA STREAM OFFLINE</div>
-          <div style="font-size:10px;opacity:.6">Connect your YOLOv8 module to display live feed</div>
-          <div style="font-size:10px;opacity:.4;margin-top:8px;">Stream endpoint: /api/stream/ (configure in views.py)</div>
-        </div>
-        <div class="camera-overlay"></div>
-        <div class="cam-badge"><span style="width:7px;height:7px;background:var(--danger);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> REC</div>
-      </div>
-
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title"><span>Last Detection Snapshot</span></div>
-          <div id="last-snapshot" style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-mono);font-size:12px;">
-            No detections yet
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title"><span>Detection Status</span></div>
-          <div id="feed-latest" style="padding:8px 0;"></div>
-        </div>
-      </div>
+<div class="page" id="page-feed">
+  <div class="section-title">Live Camera Feed</div>
+  <div class="camera-wrap">
+    <img id="live-stream"
+         src=""
+         style="width:100%;height:100%;object-fit:cover;display:none;"
+         alt="Live Feed">
+    <div class="camera-placeholder" id="cam-placeholder">
+      <div class="cam-icon">📷</div>
+      <div>CAMERA STREAM OFFLINE</div>
+      <div style="font-size:10px;opacity:.6">Click a source below to start</div>
     </div>
+    <div class="camera-overlay"></div>
+    <div class="cam-badge">
+      <span style="width:7px;height:7px;background:var(--danger);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> REC
+    </div>
+  </div>
+
+  <!-- Camera source controls -->
+  <div style="display:flex;gap:10px;margin-top:8px;">
+    <button class="demo-btn" onclick="startStream(0)">📷 Webcam</button>
+    <button class="demo-btn" onclick="promptIPCamera()">📡 IP Camera</button>
+    <button class="demo-btn" onclick="stopStream()">⏹ Stop</button>
+  </div>
 
     <!-- ── ALERTS PAGE ── -->
     <div class="page" id="page-alerts">
@@ -880,10 +878,31 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <script>
+  // ── LIVE STREAM CONTROLS ──────────────────────────────────────────────────
+function startStream(source) {
+  const img = document.getElementById('live-stream');
+  const placeholder = document.getElementById('cam-placeholder');
+  img.src = '/video-feed/?source=' + encodeURIComponent(source);
+  img.style.display = 'block';
+  placeholder.style.display = 'none';
+}
+
+function stopStream() {
+  const img = document.getElementById('live-stream');
+  const placeholder = document.getElementById('cam-placeholder');
+  img.src = '';
+  img.style.display = 'none';
+  placeholder.style.display = 'flex';
+}
+
+function promptIPCamera() {
+  const url = prompt('Enter your IP camera RTSP URL:', 'rtsp://admin:password@192.168.1.100:554/stream');
+  if (url) startStream(url);
+}
 // ── STATE ─────────────────────────────────────────────────────────────────
 const state = {
-  lastNotifId: 0,
-  allNotifs: [],
+  lastNotifyId: 0,
+  allNotifys: [],
   histPage: 1,
   trendChart: null,
   sevChart: null,

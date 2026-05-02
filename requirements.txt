@@ -1,0 +1,12 @@
+django
+djangorestframework
+ultralytics
+opencv-python-headless
+requests
+gunicorn
+whitenoise
+pillow
+dj-database-url
+psycopg2-binary
+torch
+torchvision

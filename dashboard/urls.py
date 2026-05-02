@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/events/<int:event_id>/acknowledge/', views.acknowledge_event, name='acknowledge_event'),
     path('api/history/', views.history, name='history'),
     path('api/stats/', views.stats, name='stats'),
+    path('video-feed/', views.video_feed, name='video_feed'),
 ]

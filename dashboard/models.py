@@ -5,7 +5,7 @@ THREAT_CLASSES = [
     ('food', 'Food Remains'),
     ('animal', 'Animal'),
     ('bottle', 'Plastic Bottle'),
-    ('littering', 'Littering Behaviour'),
+    ('littering', 'Littering Behaviors'),
 ]
 
 SEVERITY = [

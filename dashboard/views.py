@@ -1,3 +1,24 @@
+import cv2
+import numpy as np
+from django.http import StreamingHttpResponse
+from ultralytics import YOLO
+import threading
+
+
+_model = None
+_model_lock = threading.Lock()
+
+
+def get_model():
+    global _model
+    with _model_lock:
+        if _model is None:
+            import os
+            model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'best.pt')
+            _model = YOLO(model_path)
+    return _model
+
+
 import json
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -9,11 +30,11 @@ from datetime import timedelta
 from .models import DetectionEvent, Notification
 
 SEVERITY_MAP = {
-    'animal': 'high',
-    'littering': 'high',
-    'trash': 'medium',
-    'food': 'medium',
-    'bottle': 'low',
+    'Animal': 'high',
+    'Littering': 'high',
+    'Trash': 'medium',
+    'Food': 'medium',
+    'Bottle': 'low',
 }
 
 CLASS_MESSAGES = {
@@ -21,7 +42,7 @@ CLASS_MESSAGES = {
     'food':      'Food remains spotted at pool perimeter. Collect before attracting pests.',
     'animal':    'Animal intrusion detected! Escort animal away from pool area.',
     'bottle':    'Plastic bottle found near pool edge. Remove to prevent water contamination.',
-    'littering': 'Littering behaviour observed. Approach visitor and request compliance.',
+    'littering': 'Littering behaviors observed. Approach visitor and request compliance.',
 }
 
 
@@ -146,3 +167,63 @@ def stats(request):
         'total_24h': DetectionEvent.objects.filter(timestamp__gte=last_24h).count(),
         'total_all': DetectionEvent.objects.count(),
     })
+
+def generate_frames(source=0):
+    model = get_model()
+    cap = cv2.VideoCapture(source)
+
+    if not cap.isOpened():
+        return
+
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Run YOLOv8 on frame
+            results = model(frame, conf=0.45, verbose=False)
+            annotated = results[0].plot()
+
+            # Auto-ingest detections
+            for result in results:
+                for box in result.boxes:
+                    class_id   = int(box.cls[0])
+                    confidence = float(box.conf[0])
+                    label      = model.names[class_id]
+                    severity   = SEVERITY_MAP.get(label, 'low')
+                    message    = CLASS_MESSAGES.get(label.lower(), f'{label} detected at pool.')
+
+                    event = DetectionEvent.objects.create(
+                        object_class='trash',  # default bucket
+                        confidence=confidence,
+                        severity=severity,
+                        location_note='Live Camera',
+                    )
+                    Notification.objects.create(event=event, message=f'{label}: {message}')
+
+            # Encode frame as JPEG
+            _, buffer = cv2.imencode('.jpg', annotated)
+            frame_bytes = buffer.tobytes()
+
+            yield (
+                b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n'
+            )
+    finally:
+        cap.release()
+
+
+@require_http_methods(["GET"])
+def video_feed(request):
+    source = request.GET.get('source', '0')
+    # Convert to int if webcam index
+    try:
+        source = int(source)
+    except ValueError:
+        pass  # keep as string for RTSP URLs
+
+    return StreamingHttpResponse(
+        generate_frames(source),
+        content_type='multipart/x-mixed-replace; boundary=frame'
+    )
