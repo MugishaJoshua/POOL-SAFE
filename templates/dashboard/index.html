@@ -403,7 +403,7 @@
   }
 
   /* ── NOTIFICATION ITEM ── */
-  .notif-list {
+  .notify-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -411,11 +411,11 @@
     overflow-y: auto;
   }
 
-  .notif-list::-webkit-scrollbar { width: 4px; }
-  .notif-list::-webkit-scrollbar-track { background: transparent; }
-  .notif-list::-webkit-scrollbar-thumb { background: var(--border); }
+  .notify-list::-webkit-scrollbar { width: 4px; }
+  .notify-list::-webkit-scrollbar-track { background: transparent; }
+  .notify-list::-webkit-scrollbar-thumb { background: var(--border); }
 
-  .notif-item {
+  .notify-item {
     display: flex;
     gap: 12px;
     padding: 12px 14px;
@@ -757,21 +757,32 @@
       </div>
     </div>
 
-    <!-- ── LIVE FEED PAGE ── -->
+   <!-- ── LIVE FEED PAGE ── -->
 <div class="page" id="page-feed">
   <div class="section-title">Live Camera Feed</div>
-  
   <div class="camera-wrap">
-    <div class="camera-placeholder">
+    <img id="live-stream"
+         src=""
+         style="width:100%;height:100%;object-fit:cover;display:none;"
+         alt="Live Feed"
+         onerror="this.style.display='none'; document.getElementById('cam-placeholder').style.display='flex';">
+    <div class="camera-placeholder" id="cam-placeholder">
       <div class="cam-icon">📡</div>
-      <div style="color:#fff; font-size:14px; margin-bottom:8px;">LIVE DETECTION ACTIVE</div>
-      <div>Camera feed runs on the local surveillance machine.</div>
-      <div style="margin-top:8px; opacity:.6;">Detections and alerts appear in real time below.</div>
+      <div style="color:#fff;font-size:14px;margin-bottom:8px;">CAMERA OFFLINE</div>
+      <div>Enter your local machine IP below to connect</div>
     </div>
     <div class="camera-overlay"></div>
     <div class="cam-badge">
-      <span style="width:7px;height:7px;background:var(--ok);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> MONITORING
+      <span style="width:7px;height:7px;background:var(--ok);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> REC
     </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:8px;align-items:center;">
+    <input id="stream-ip" type="text" placeholder="e.g. 192.168.1.72"
+           style="background:var(--surface2);border:1px solid var(--border);color:#fff;
+                  font-family:var(--font-mono);font-size:12px;padding:8px 12px;flex:1;">
+    <button class="demo-btn" onclick="connectStream()">▶ Connect</button>
+    <button class="demo-btn" onclick="disconnectStream()">⏹ Disconnect</button>
   </div>
 
   <div class="two-col">
@@ -783,8 +794,8 @@
     </div>
     <div class="card">
       <div class="card-title"><span>Detection Status</span></div>
-      <div id="last-snapshot" style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-mono);font-size:12px;">
-        Run detector.py locally to start sending detections.
+      <div style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-mono);font-size:12px;">
+        Run stream_server.py locally then enter your IP to connect.
       </div>
     </div>
   </div>
@@ -892,16 +903,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <script>
-  // ── LIVE STREAM CONTROLS ──────────────────────────────────────────────────
-function startStream(source) {
+ // ── LIVE STREAM CONTROLS ─────────────────────────────────────────────────
+function connectStream() {
+  const ip = document.getElementById('stream-ip').value.trim();
+  if (!ip) return;
+  const url = `http://${ip}:5000/stream`;
   const img = document.getElementById('live-stream');
   const placeholder = document.getElementById('cam-placeholder');
-  img.src = '/video-feed/?source=' + encodeURIComponent(source);
+  img.src = url;
   img.style.display = 'block';
   placeholder.style.display = 'none';
+  localStorage.setItem('streamIP', ip);
 }
 
-function stopStream() {
+function disconnectStream() {
   const img = document.getElementById('live-stream');
   const placeholder = document.getElementById('cam-placeholder');
   img.src = '';
@@ -909,14 +924,15 @@ function stopStream() {
   placeholder.style.display = 'flex';
 }
 
-function promptIPCamera() {
-  const url = prompt('Enter your IP camera RTSP URL:', 'rtsp://admin:password@192.168.1.100:554/stream');
-  if (url) startStream(url);
-}
-// ── STATE ─────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const savedIP = localStorage.getItem('streamIP');
+  if (savedIP) document.getElementById('stream-ip').value = savedIP;
+});
+
+// ── STATE ────────────────────────────────────────────────────────────────
 const state = {
-  lastNotifyId: 0,
-  allNotifys: [],
+  lastNotifId: 0,
+  allNotifs: [],
   histPage: 1,
   trendChart: null,
   sevChart: null,
@@ -930,7 +946,7 @@ const CLASS_ICONS = {
   littering:'🚫',
 };
 
-// ── NAVIGATION ────────────────────────────────────────────────────────────
+// ── NAVIGATION ───────────────────────────────────────────────────────────
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -940,7 +956,7 @@ function showPage(name) {
   if (name === 'analytics') loadAnalytics();
 }
 
-// ── CLOCK ─────────────────────────────────────────────────────────────────
+// ── CLOCK ────────────────────────────────────────────────────────────────
 function updateClock() {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB', {hour12: false});
 }
@@ -967,7 +983,7 @@ function playAlert(severity) {
   } catch(e) {}
 }
 
-// ── TOAST ─────────────────────────────────────────────────────────────────
+// ── TOAST ────────────────────────────────────────────────────────────────
 function showToast(notif) {
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
@@ -979,22 +995,19 @@ function showToast(notif) {
     <div class="toast-body">${notif.message}</div>
     <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;">
       ${notif.confidence}% confidence · ${notif.location} · ${notif.timestamp}
-    </div>
-  `;
+    </div>`;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 8000);
   playAlert(notif.severity);
 }
 
-// ── OVERVIEW NOTIF CARD ───────────────────────────────────────────────────
+// ── NOTIF CARD ───────────────────────────────────────────────────────────
 function buildNotifItem(n) {
   return `
     <div class="notif-item ${n.severity}" id="ni-${n.id}">
       <div class="notif-icon">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
       <div class="notif-body">
-        <div class="notif-title">
-          ${n.object_class} &nbsp;<span class="badge ${n.severity}">${n.severity}</span>
-        </div>
+        <div class="notif-title">${n.object_class} &nbsp;<span class="badge ${n.severity}">${n.severity}</span></div>
         <div class="notif-msg">${n.message}</div>
         <div class="notif-meta">
           <span>${n.timestamp}</span>
@@ -1006,7 +1019,7 @@ function buildNotifItem(n) {
     </div>`;
 }
 
-// ── ACKNOWLEDGE ───────────────────────────────────────────────────────────
+// ── ACKNOWLEDGE ──────────────────────────────────────────────────────────
 function acknowledge(eventId, notifId) {
   fetch(`/api/events/${eventId}/acknowledge/`, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}})
     .then(() => {
@@ -1024,10 +1037,9 @@ function clearAllAlerts() {
   state.allNotifs = [];
   updateUnreadBadge();
   refreshOverviewNotifs();
-  renderAlertsList();
 }
 
-// ── RENDER NOTIF LISTS ────────────────────────────────────────────────────
+// ── RENDER NOTIF LISTS ───────────────────────────────────────────────────
 function refreshOverviewNotifs() {
   const el = document.getElementById('overview-notifs');
   const al = document.getElementById('alerts-list');
@@ -1036,27 +1048,21 @@ function refreshOverviewNotifs() {
     al.innerHTML = '<div class="empty">No active alerts</div>';
     return;
   }
-  const recent = state.allNotifs.slice(0, 5).map(buildNotifItem).join('');
-  el.innerHTML = recent;
+  el.innerHTML = state.allNotifs.slice(0, 5).map(buildNotifItem).join('');
   al.innerHTML = state.allNotifs.map(buildNotifItem).join('');
-  const ts = state.allNotifs[0]?.timestamp;
-  document.getElementById('recent-ts').textContent = ts || '';
-}
-
-function renderAlertsList() {
-  refreshOverviewNotifs();
+  document.getElementById('recent-ts').textContent = state.allNotifs[0]?.timestamp || '';
 }
 
 function updateUnreadBadge() {
   const count = state.allNotifs.length;
   const badge = document.getElementById('notif-count');
-  const statEl = document.getElementById('stat-unread');
   badge.textContent = count;
   badge.style.display = count ? 'flex' : 'none';
+  const statEl = document.getElementById('stat-unread');
   if (statEl) statEl.textContent = count;
 }
 
-// ── POLLING ───────────────────────────────────────────────────────────────
+// ── POLLING ──────────────────────────────────────────────────────────────
 function poll() {
   fetch(`/api/notifications/poll/?since_id=${state.lastNotifId}`)
     .then(r => r.json())
@@ -1077,15 +1083,15 @@ function poll() {
     .catch(() => {});
 }
 
-// ── STATS ─────────────────────────────────────────────────────────────────
+// ── STATS ────────────────────────────────────────────────────────────────
 function loadStats() {
   fetch('/api/stats/')
     .then(r => r.json())
     .then(d => {
-      document.getElementById('stat-total').textContent   = d.total_all;
-      document.getElementById('stat-24h').textContent     = d.total_24h;
-      document.getElementById('stat-today').textContent   = d.total_today;
-      document.getElementById('stat-unread').textContent  = d.unread_notifications;
+      document.getElementById('stat-total').textContent  = d.total_all;
+      document.getElementById('stat-24h').textContent    = d.total_24h;
+      document.getElementById('stat-today').textContent  = d.total_today;
+      document.getElementById('stat-unread').textContent = d.unread_notifications;
       const badge = document.getElementById('notif-count');
       badge.textContent = d.unread_notifications;
       badge.style.display = d.unread_notifications ? 'flex' : 'none';
@@ -1093,7 +1099,7 @@ function loadStats() {
     });
 }
 
-// ── MINI BAR CHART (overview) ─────────────────────────────────────────────
+// ── MINI BAR CHART ───────────────────────────────────────────────────────
 function renderClassChart(byClass) {
   const el = document.getElementById('class-chart-wrap');
   if (!byClass?.length) { el.innerHTML = '<div class="empty">No data</div>'; return; }
@@ -1110,9 +1116,10 @@ function renderClassChart(byClass) {
     </div>`).join('');
 }
 
-// ── FEED LATEST ───────────────────────────────────────────────────────────
+// ── FEED LATEST ──────────────────────────────────────────────────────────
 function updateFeedLatest() {
   const el = document.getElementById('feed-latest');
+  if (!el) return;
   if (!state.allNotifs.length) { el.innerHTML = '<div class="empty">No recent detections</div>'; return; }
   const n = state.allNotifs[0];
   el.innerHTML = `
@@ -1125,7 +1132,7 @@ function updateFeedLatest() {
     </div>`;
 }
 
-// ── HISTORY ───────────────────────────────────────────────────────────────
+// ── HISTORY ──────────────────────────────────────────────────────────────
 function loadHistory(page) {
   page = page || state.histPage;
   state.histPage = page;
@@ -1146,10 +1153,8 @@ function loadHistory(page) {
           <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Cleared' : '● Active'}</td>
           <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id}, this)">Clear</button>` : ''}</td>
         </tr>`).join('');
-      // Pagination
       const pages = Math.ceil(d.total / d.per_page);
-      const pag = document.getElementById('history-pagination');
-      pag.innerHTML = Array.from({length: pages}, (_, i) =>
+      document.getElementById('history-pagination').innerHTML = Array.from({length: pages}, (_, i) =>
         `<button class="page-btn ${i+1 === page ? 'active' : ''}" onclick="loadHistory(${i+1})">${i+1}</button>`
       ).join('');
     });
@@ -1160,7 +1165,7 @@ function ackFromHistory(eventId, btn) {
     .then(() => loadHistory());
 }
 
-// ── ANALYTICS ─────────────────────────────────────────────────────────────
+// ── ANALYTICS ────────────────────────────────────────────────────────────
 function loadAnalytics() {
   fetch('/api/stats/').then(r => r.json()).then(d => {
     document.getElementById('an-total').textContent = d.total_all;
@@ -1169,23 +1174,16 @@ function loadAnalytics() {
     const total7d = d.daily.reduce((a, b) => a + b.count, 0);
     document.getElementById('an-avg').textContent = (total7d / 7).toFixed(1);
 
-    // Trend chart
     const tCtx = document.getElementById('trend-chart').getContext('2d');
     if (state.trendChart) state.trendChart.destroy();
     state.trendChart = new Chart(tCtx, {
       type: 'bar',
       data: {
         labels: d.daily.map(x => x.date.slice(5)),
-        datasets: [{
-          label: 'Detections',
-          data: d.daily.map(x => x.count),
-          backgroundColor: 'rgba(0,212,255,0.25)',
-          borderColor: 'rgba(0,212,255,0.8)',
-          borderWidth: 1,
-        }]
+        datasets: [{ label: 'Detections', data: d.daily.map(x => x.count),
+          backgroundColor: 'rgba(0,212,255,0.25)', borderColor: 'rgba(0,212,255,0.8)', borderWidth: 1 }]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
+      options: { responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: '#4a6a80', font: { family: 'Share Tech Mono', size: 10 } }, grid: { color: '#1a3050' } },
@@ -1194,25 +1192,22 @@ function loadAnalytics() {
       }
     });
 
-    // Severity donut
     const sCtx = document.getElementById('severity-chart').getContext('2d');
     if (state.sevChart) state.sevChart.destroy();
     const sevOrder = ['high', 'medium', 'low'];
     const sevColors = { high: '#ff3b3b', medium: '#ffaa00', low: '#00e676' };
-    const sevData = sevOrder.map(s => d.by_severity.find(x => x.severity === s)?.count || 0);
     state.sevChart = new Chart(sCtx, {
       type: 'doughnut',
       data: {
         labels: ['High', 'Medium', 'Low'],
-        datasets: [{ data: sevData, backgroundColor: sevOrder.map(s => sevColors[s]), borderWidth: 0, hoverOffset: 4 }]
+        datasets: [{ data: sevOrder.map(s => d.by_severity.find(x => x.severity === s)?.count || 0),
+          backgroundColor: sevOrder.map(s => sevColors[s]), borderWidth: 0, hoverOffset: 4 }]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
+      options: { responsive: true, maintainAspectRatio: false,
         plugins: { legend: { labels: { color: '#ccdde8', font: { family: 'Share Tech Mono', size: 11 }, boxWidth: 12 } } }
       }
     });
 
-    // Class breakdown bars
     const cb = document.getElementById('class-breakdown');
     const maxC = Math.max(...d.by_class.map(c => c.count), 1);
     cb.innerHTML = d.by_class.map(c => `
@@ -1228,7 +1223,7 @@ function loadAnalytics() {
   });
 }
 
-// ── DEMO SIMULATE ─────────────────────────────────────────────────────────
+// ── DEMO SIMULATE ────────────────────────────────────────────────────────
 function simulate(objClass) {
   const confidence = (0.7 + Math.random() * 0.28).toFixed(2);
   fetch('/api/ingest/', {
@@ -1238,13 +1233,13 @@ function simulate(objClass) {
   }).then(() => { loadStats(); });
 }
 
-// ── CSRF HELPER ───────────────────────────────────────────────────────────
+// ── CSRF HELPER ──────────────────────────────────────────────────────────
 function getCookie(name) {
   const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
   return v ? v.pop() : '';
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────────────────
 loadStats();
 setInterval(loadStats, 30000);
 setInterval(poll, 3000);

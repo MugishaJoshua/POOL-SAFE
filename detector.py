@@ -48,16 +48,34 @@ last_sent = {}   # track last time each class was sent to avoid duplicate alerts
 
 def send_detection(label, confidence, camera_id="CAM-01"):
     severity = SEVERITY_MAP.get(label, DEFAULT_SEVERITY)
+    
+    # Map YOLOv8 class names to Django's valid object_class choices
+    CLASS_MAP = {
+        "Bird":                 "animal",
+        "Cat":                  "animal",
+        "Dog":                  "animal",
+        "Food waste":           "food",
+        "Garbage bag":          "trash",
+        "Clear plastic bottle": "bottle",
+        "Other plastic bottle": "bottle",
+        "Plastic film":         "trash",
+        "Plastic straw":        "trash",
+        "Cigarette":            "littering",
+        "Drink can":            "trash",
+        "Unlabeled litter":     "trash",
+    }
+    
+    object_class = CLASS_MAP.get(label, "trash")  # default to trash
+    
     payload = {
-        "camera_id":    camera_id,
-        "label":        label,
+        "object_class": object_class,
         "confidence":   round(float(confidence), 4),
-        "severity":     severity,
+        "location_note": f"{camera_id}: {label}",
     }
     try:
         response = requests.post(DJANGO_URL, json=payload, timeout=3)
         if response.status_code == 201:
-            print(f"  ✅ Sent: {label} ({confidence:.2f}) [{severity}]")
+            print(f"  ✅ Sent: {label} → {object_class} ({confidence:.2f}) [{severity}]")
         else:
             print(f"  ⚠️  Server responded {response.status_code}: {response.text}")
     except requests.exceptions.RequestException as e:
