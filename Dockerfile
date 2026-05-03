@@ -20,4 +20,4 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8080
 
-CMD python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+CMD python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
