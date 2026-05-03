@@ -1,4 +1,4 @@
-import cv2
+
 import numpy as np
 from django.http import StreamingHttpResponse
 from ultralytics import YOLO
@@ -169,6 +169,7 @@ def stats(request):
     })
 
 def generate_frames(source=0):
+    import cv2
     model = get_model()
     cap = cv2.VideoCapture(source)
 

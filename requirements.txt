@@ -1,7 +1,7 @@
 django
 djangorestframework
 ultralytics
-opencv-python-headless
+opencv-python-headless==4.8.1.78
 requests
 gunicorn
 whitenoise
@@ -10,3 +10,4 @@ dj-database-url
 psycopg2-binary
 torch
 torchvision
+numpy<2.0
