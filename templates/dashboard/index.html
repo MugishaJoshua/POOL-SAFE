@@ -760,21 +760,35 @@
     <!-- ── LIVE FEED PAGE ── -->
 <div class="page" id="page-feed">
   <div class="section-title">Live Camera Feed</div>
+  
   <div class="camera-wrap">
-    <img id="live-stream"
-         src=""
-         style="width:100%;height:100%;object-fit:cover;display:none;"
-         alt="Live Feed">
-    <div class="camera-placeholder" id="cam-placeholder">
-      <div class="cam-icon">📷</div>
-      <div>CAMERA STREAM OFFLINE</div>
-      <div style="font-size:10px;opacity:.6">Click a source below to start</div>
+    <div class="camera-placeholder">
+      <div class="cam-icon">📡</div>
+      <div style="color:#fff; font-size:14px; margin-bottom:8px;">LIVE DETECTION ACTIVE</div>
+      <div>Camera feed runs on the local surveillance machine.</div>
+      <div style="margin-top:8px; opacity:.6;">Detections and alerts appear in real time below.</div>
     </div>
     <div class="camera-overlay"></div>
     <div class="cam-badge">
-      <span style="width:7px;height:7px;background:var(--danger);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> REC
+      <span style="width:7px;height:7px;background:var(--ok);border-radius:50%;display:inline-block;animation:blink 1s step-end infinite"></span> MONITORING
     </div>
   </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title"><span>Last Detection</span></div>
+      <div id="feed-latest" style="padding:8px 0;">
+        <div class="empty">No detections yet</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>Detection Status</span></div>
+      <div id="last-snapshot" style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-mono);font-size:12px;">
+        Run detector.py locally to start sending detections.
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- Camera source controls -->
   <div style="display:flex;gap:10px;margin-top:8px;">

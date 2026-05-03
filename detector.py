@@ -5,7 +5,7 @@ from ultralytics import YOLO
 
 # ── Config ─────────────────────────────────────────────
 MODEL_PATH     = "best.pt"
-DJANGO_URL     = "http://127.0.0.1:8000/api/ingest/"
+DJANGO_URL     = "https://pool-safe-production.up.railway.app/api/ingest/"
 CONFIDENCE     = 0.45       # minimum confidence threshold
 FRAME_INTERVAL = 2          # process every N seconds (avoid spamming)
 
