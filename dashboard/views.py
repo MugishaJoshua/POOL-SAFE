@@ -196,12 +196,12 @@ def generate_frames(source=0):
                     message    = CLASS_MESSAGES.get(label.lower(), f'{label} detected at pool.')
 
                     event = DetectionEvent.objects.create(
-                        object_class='trash',  # default bucket
-                        confidence=confidence,
-                        severity=severity,
-                        location_note='Live Camera',
-                    )
-                    Notification.objects.create(event=event, message=f'{label}: {message}')
+                         object_class=label.lower(),
+                         confidence=confidence,
+                         severity=severity,
+                         location_note='Live Camera',
+                                )
+                    Notification.objects.create(event=event, message=message)
 
             # Encode frame as JPEG
             _, buffer = cv2.imencode('.jpg', annotated)
