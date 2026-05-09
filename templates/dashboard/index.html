@@ -1032,6 +1032,7 @@ function clearAllAlerts() {
     fetch(`/api/events/${n.event_id}/acknowledge/`, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}});
   });
   state.allNotifs = [];
+  state.lastNotifId = 0;  // ← add this line
   updateUnreadBadge();
   refreshOverviewNotifs();
 }
