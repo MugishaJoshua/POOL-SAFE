@@ -13,21 +13,17 @@ CONFIDENCE   = 0.45
 FRAME_INTERVAL = 2
 
 SEVERITY_MAP = {
-    "Bird": "high", "Cat": "high", "Dog": "high",
-    "Food waste": "medium", "Garbage bag": "high",
-    "Clear plastic bottle": "medium", "Other plastic bottle": "medium",
-    "Plastic film": "low", "Plastic straw": "low",
-    "Cigarette": "medium", "Drink can": "low",
-    "Unlabeled litter": "medium",
+    "Animal": "high",
+    "Food": "high",
+    "Trash": "medium",
+    "Bottle": "low",
 }
 
 CLASS_MAP = {
-    "Bird": "animal", "Cat": "animal", "Dog": "animal",
-    "Food waste": "food", "Garbage bag": "trash",
-    "Clear plastic bottle": "bottle", "Other plastic bottle": "bottle",
-    "Plastic film": "trash", "Plastic straw": "trash",
-    "Cigarette": "littering", "Drink can": "trash",
-    "Unlabeled litter": "trash",
+      "Animal": "high",
+    "Food": "high",
+    "Trash": "medium",
+    "Bottle": "low",
 }
 
 print("Loading model...")

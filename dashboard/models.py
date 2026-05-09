@@ -28,7 +28,7 @@ class DetectionEvent(models.Model):
         ordering = ['-timestamp']
 
     def __str__(self):
-        return f"{self.object_class} @ {self.timestamp:%Y-%m-%d %H:%M:%S} ({self.confidence:.0%})"
+        return f"{self.object_class} @ {self.timestamp:%Y-%m-%d %H:%M:%S} ({self.confidence:.7%})"
 
 
 class Notification(models.Model):

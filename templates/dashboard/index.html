@@ -905,15 +905,12 @@
 <script>
  // ── LIVE STREAM CONTROLS ─────────────────────────────────────────────────
 function connectStream() {
-  const ip = document.getElementById('stream-ip').value.trim();
-  if (!ip) return;
-  const url = `http://${ip}:5000/stream`;
-  const img = document.getElementById('live-stream');
-  const placeholder = document.getElementById('cam-placeholder');
-  img.src = url;
-  img.style.display = 'block';
-  placeholder.style.display = 'none';
-  localStorage.setItem('streamIP', ip);
+    const url = document.getElementById('stream-url').value.trim()
+    if (!url) {
+        showToast('Enter the stream URL first', 'warning')
+        return
+    }
+    streamImg.src = url   // user pastes the https://xxx.ngrok-free.app/stream URL
 }
 
 function disconnectStream() {
