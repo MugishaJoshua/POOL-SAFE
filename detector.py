@@ -12,7 +12,7 @@ FRAME_INTERVAL = 10             # seconds before re-alerting the same class
 
 # Detection threshold — lower so the model sees detections,
 # then MIN_SEND_CONFIDENCE decides whether to report them.
-CONFIDENCE     = 0.85
+CONFIDENCE     = 0.95
 
 # Camera source — choose one:
 # CAMERA_SOURCE = 0                                            # webcam

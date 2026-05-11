@@ -183,7 +183,7 @@ def generate_frames(source=0):
                 break
 
             # Run YOLOv8 on frame
-            results = model(frame, conf=0.45, verbose=False)
+            results = model(frame, conf=0.95, verbose=False)
             annotated = results[0].plot()
 
             # Auto-ingest detections
