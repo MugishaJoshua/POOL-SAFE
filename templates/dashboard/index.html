@@ -9,17 +9,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:        #0a0a0a;
-    --surface:   #111111;
-    --surface2:  #1a1a1a;
-    --border:    rgba(255,255,255,0.08);
-    --border2:   rgba(255,255,255,0.14);
-    --accent:    #ffffff;
-    --danger:    #ff4444;
-    --warn:      #f5a623;
-    --ok:        #22c55e;
-    --text:      #ffffff;
-    --muted:     rgba(255,255,255,0.45);
+    --bg:        #F5F0E8;
+    --surface:   #EDE8DE;
+    --surface2:  #E4DDCF;
+    --border:    rgba(100,80,50,0.12);
+    --border2:   rgba(100,80,50,0.2);
+    --accent:    #3D2E1A;
+    --blue:      #2A6DB5;
+    --blue-bg:   rgba(42,109,181,0.08);
+    --blue-border: rgba(42,109,181,0.25);
+    --green:     #2E7D4F;
+    --green-bg:  rgba(46,125,79,0.08);
+    --green-border: rgba(46,125,79,0.25);
+    --danger:    #B83232;
+    --warn:      #A0620A;
+    --ok:        #2E7D4F;
+    --text:      #2A1F0E;
+    --muted:     rgba(60,45,20,0.45);
     --font:      'Inter', sans-serif;
     --font-mono: 'Share Tech Mono', monospace;
   }
@@ -42,8 +48,8 @@
     justify-content: space-between;
     padding: 0 40px;
     height: 64px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
+    background: #0D2340;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -53,12 +59,12 @@
 
   .logo-mark {
     width: 28px; height: 28px;
-    background: #fff;
+    background: #5B9BD5;
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   }
 
-  .logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: #fff; }
-  .logo-text span { color: rgba(255,255,255,0.35); }
+  .logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: #ffffff; }
+  .logo-text span { color: rgba(255,255,255,0.45); }
 
   .nav-links { display: flex; align-items: center; gap: 2px; }
 
@@ -66,7 +72,7 @@
     padding: 7px 14px;
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: rgba(255,255,255,0.55);
     cursor: pointer;
     border-radius: 6px;
     transition: all .15s;
@@ -75,33 +81,33 @@
     font-family: var(--font);
   }
 
-  .nav-link:hover { color: #fff; background: var(--surface2); }
-  .nav-link.active { color: #fff; background: var(--surface2); }
+  .nav-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .nav-link.active { color: #fff; background: rgba(255,255,255,0.15); }
 
   .header-right { display: flex; align-items: center; gap: 16px; }
 
   .live-badge {
     display: flex; align-items: center; gap: 6px;
-    font-size: 12px; font-weight: 500; color: var(--ok);
+    font-size: 12px; font-weight: 500; color: var(--green);
     padding: 5px 12px;
-    border: 1px solid rgba(34,197,94,0.25);
+    border: 1px solid var(--green-border);
     border-radius: 100px;
-    background: rgba(34,197,94,0.06);
+    background: var(--green-bg);
   }
 
   .live-dot {
     width: 6px; height: 6px;
-    background: var(--ok); border-radius: 50%;
+    background: var(--green); border-radius: 50%;
     animation: blink 1.4s ease-in-out infinite;
   }
 
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  #clock { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.5px; }
+  #clock { font-family: var(--font-mono); font-size: 12px; color: rgba(255,255,255,0.45); letter-spacing: 0.5px; }
 
   #notif-bell {
     position: relative; cursor: pointer; font-size: 18px;
-    color: var(--muted); transition: color .2s; background: none; border: none; padding: 4px;
+    color: rgba(255,255,255,0.55); transition: color .2s; background: none; border: none; padding: 4px;
   }
   #notif-bell:hover { color: #fff; }
 
@@ -129,7 +135,7 @@
   /* ── HERO ── */
   .page-hero h1 {
     font-size: 52px; font-weight: 800; letter-spacing: -2px;
-    line-height: 1.05; color: #fff;
+    line-height: 1.05; color: var(--text);
   }
 
   .page-hero p {
@@ -142,8 +148,8 @@
   /* ── STAT GRID ── */
   .stat-grid {
     display: grid; grid-template-columns: repeat(4,1fr);
-    gap: 1px; background: var(--border);
-    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    gap: 1px; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; overflow: hidden;
   }
 
   .three-col {
@@ -152,22 +158,31 @@
     border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   }
 
-  .stat-card { background: var(--surface); padding: 28px 28px 24px; position: relative; transition: background .15s; }
-  .stat-card:hover { background: var(--surface2); }
+  .stat-card { background: #1A4A80; padding: 28px 28px 24px; position: relative; transition: background .15s; }
+  .stat-card:hover { background: #1E5490; }
+
+  /* analytics stat cards stay beige */
+  .three-col .stat-card { background: var(--surface); }
+  .three-col .stat-card:hover { background: var(--surface2); }
 
   .stat-bar { position: absolute; top:0; left:0; right:0; height: 2px; }
-  .stat-bar.accent { background: #fff; }
-  .stat-bar.danger { background: var(--danger); }
-  .stat-bar.warn   { background: var(--warn); }
-  .stat-bar.ok     { background: var(--ok); }
+  .stat-bar.accent { background: #5B9BD5; }
+  .stat-bar.danger { background: #FF7070; }
+  .stat-bar.warn   { background: #FFB84D; }
+  .stat-bar.ok     { background: #4DC987; }
 
   .stat-label {
     font-size: 11px; font-weight: 500; letter-spacing: 0.8px;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 12px;
   }
 
-  .stat-value { font-size: 46px; font-weight: 800; letter-spacing: -2px; color: #fff; line-height: 1; }
-  .stat-sub   { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .stat-value { font-size: 46px; font-weight: 800; letter-spacing: -2px; color: #ffffff; line-height: 1; }
+  .stat-sub   { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 6px; }
+
+  /* analytics cards keep beige text */
+  .three-col .stat-label { color: var(--muted); }
+  .three-col .stat-value { color: var(--text); }
+  .three-col .stat-sub   { color: var(--muted); }
 
   /* ── TWO COL ── */
   .two-col {
@@ -177,6 +192,11 @@
   }
 
   .card { background: var(--surface); padding: 28px; }
+
+  /* Overview green cards */
+  .overview-cards { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.2); }
+  .overview-cards .card { background: #1A5C38; }
+  .overview-cards .card:hover { background: #1E6840; }
 
   .card-solo {
     background: var(--surface);
@@ -189,6 +209,18 @@
     margin-bottom: 20px; padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* green overview cards */
+  .overview-cards .card-title {
+    color: rgba(255,255,255,0.6);
+    border-bottom-color: rgba(255,255,255,0.15);
+  }
+
+  /* card-solo titles */
+  .card-solo .card-title {
+    color: var(--muted);
+    border-bottom-color: var(--border);
   }
 
   /* ── CAMERA ── */
@@ -236,45 +268,53 @@
     animation: slide-in .25s ease-out; position: relative;
   }
 
+  .overview-cards .notify-item {
+    background: rgba(0,0,0,0.15);
+    border-left-color: rgba(255,255,255,0.2);
+  }
+
   @keyframes slide-in { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
 
   .notify-item.high   { border-left-color: var(--danger); }
   .notify-item.medium { border-left-color: var(--warn); }
-  .notify-item.low    { border-left-color: var(--ok); }
+  .notify-item.low    { border-left-color: var(--green); }
 
   .notify-icon { font-size: 20px; flex-shrink: 0; padding-top: 1px; }
   .notify-body { flex: 1; min-width: 0; }
 
   .notify-title {
-    font-weight: 600; font-size: 13px; color: #fff;
+    font-weight: 600; font-size: 13px; color: var(--text);
     text-transform: capitalize; display: flex; align-items: center; gap: 8px;
   }
+  .overview-cards .notify-title { color: #ffffff; }
 
   .notify-msg  { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .overview-cards .notify-msg { color: rgba(255,255,255,0.6); }
 
   .notify-meta {
     font-family: var(--font-mono); font-size: 10px; color: var(--muted);
-    margin-top: 5px; display: flex; gap: 12px; opacity: 0.7;
+    margin-top: 5px; display: flex; gap: 12px;
   }
+  .overview-cards .notify-meta { color: rgba(255,255,255,0.45); }
 
   .badge {
     display: inline-flex; align-items: center;
     padding: 2px 8px; font-size: 10px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.5px; border-radius: 100px;
   }
-  .badge.high   { color: var(--danger); background: rgba(255,68,68,0.12); }
-  .badge.medium { color: var(--warn);   background: rgba(245,166,35,0.12); }
-  .badge.low    { color: var(--ok);     background: rgba(34,197,94,0.12); }
+  .badge.high   { color: var(--danger); background: rgba(184,50,50,0.1); }
+  .badge.medium { color: var(--warn);   background: rgba(160,98,10,0.1); }
+  .badge.low    { color: var(--green);  background: var(--green-bg); }
 
   /* ── BUTTONS ── */
   .ack-btn {
-    background: transparent; border: 1px solid var(--border2);
-    color: var(--muted); font-size: 11px; font-weight: 500;
+    background: transparent; border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 500;
     padding: 4px 12px; border-radius: 6px; cursor: pointer;
     transition: all .15s; white-space: nowrap; align-self: flex-start;
     font-family: var(--font);
   }
-  .ack-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+  .ack-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; background: rgba(255,255,255,0.1); }
 
   .demo-btn {
     background: transparent; border: 1px solid var(--border2);
@@ -282,10 +322,10 @@
     padding: 7px 16px; border-radius: 8px; cursor: pointer;
     transition: all .15s; font-family: var(--font);
   }
-  .demo-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; background: var(--surface2); }
+  .demo-btn:hover { border-color: var(--blue-border); color: var(--blue); background: var(--blue-bg); }
 
   .btn-primary {
-    background: #fff; border: none; color: #000;
+    background: var(--blue); border: none; color: #fff;
     font-size: 13px; font-weight: 600; padding: 8px 18px;
     border-radius: 8px; cursor: pointer; transition: opacity .15s;
     font-family: var(--font);
@@ -304,7 +344,7 @@
 
   .data-table td {
     padding: 12px 16px; border-bottom: 1px solid var(--border);
-    color: rgba(255,255,255,0.7); font-size: 12px;
+    color: var(--text); font-size: 12px;
   }
 
   .data-table tr:hover td { background: var(--surface2); }
@@ -312,8 +352,8 @@
 
   .class-chip {
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; background: rgba(255,255,255,0.06);
-    border: 1px solid var(--border2); color: rgba(255,255,255,0.75);
+    padding: 3px 10px; background: var(--blue-bg);
+    border: 1px solid var(--blue-border); color: var(--blue);
     font-size: 11px; text-transform: capitalize;
     border-radius: 6px; font-weight: 500;
   }
@@ -341,7 +381,7 @@
 
   @keyframes toast-in { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
 
-  .toast-title { font-size: 13px; font-weight: 700; color: #fff; }
+  .toast-title { font-size: 13px; font-weight: 700; color: var(--text); }
   .toast-body  { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
 
   .toast-close {
@@ -351,6 +391,7 @@
 
   /* ── EMPTY ── */
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+  .overview-cards .empty { color: rgba(255,255,255,0.4); }
 
   /* ── PAGINATION ── */
   .pagination { display: flex; gap: 6px; justify-content: flex-end; margin-top: 16px; }
@@ -361,7 +402,7 @@
     padding: 5px 12px; border-radius: 6px; cursor: pointer;
     transition: all .15s; font-family: var(--font);
   }
-  .page-btn:hover, .page-btn.active { border-color: rgba(255,255,255,0.35); color: #fff; background: var(--surface2); }
+  .page-btn:hover, .page-btn.active { border-color: var(--blue-border); color: var(--blue); background: var(--blue-bg); }
 
   /* ── DEMO BAR ── */
   .demo-bar {
@@ -428,9 +469,9 @@
       <div class="stat-card"><div class="stat-bar danger"></div><div class="stat-label">Unread Alerts</div><div class="stat-value" id="stat-unread">0</div><div class="stat-sub">require attention</div></div>
       <div class="stat-card"><div class="stat-bar ok"></div><div class="stat-label">Today</div><div class="stat-value" id="stat-today">0</div><div class="stat-sub">events so far</div></div>
     </div>
-    <div class="two-col">
+    <div class="two-col overview-cards">
       <div class="card">
-        <div class="card-title"><span>Recent Alerts</span><span id="recent-ts" style="font-size:10px;color:var(--muted);">—</span></div>
+        <div class="card-title"><span>Recent Alerts</span><span id="recent-ts" style="font-size:10px;color:rgba(255,255,255,0.4);">—</span></div>
         <div class="notify-list" id="overview-notifs"><div class="empty">No alerts yet</div></div>
       </div>
       <div class="card">
@@ -465,7 +506,7 @@
       </div>
       <div class="camera-overlay"></div>
       <div class="cam-badge">
-        <span style="width:6px;height:6px;background:var(--ok);border-radius:50%;display:inline-block;animation:blink 1.2s ease-in-out infinite;"></span> REC
+        <span style="width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;animation:blink 1.2s ease-in-out infinite;"></span> REC
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
@@ -716,9 +757,9 @@ function renderClassChart(byClass) {
         ${CLASS_ICONS[c.object_class]||''} ${c.object_class}
       </div>
       <div style="flex:1;background:var(--surface2);height:5px;border-radius:3px;">
-        <div style="width:${(c.count/max)*100}%;background:rgba(255,255,255,0.6);height:100%;border-radius:3px;transition:width .4s;"></div>
+        <div style="width:${(c.count/max)*100}%;background:var(--blue);height:100%;border-radius:3px;transition:width .4s;opacity:0.6;"></div>
       </div>
-      <div style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.4);width:22px;text-align:right;">${c.count}</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);width:22px;text-align:right;">${c.count}</div>
     </div>`).join('');
 }
 
@@ -729,7 +770,7 @@ function updateFeedLatest() {
   el.innerHTML=`
     <div style="padding:12px 0;text-align:center;">
       <div style="font-size:36px;margin-bottom:12px;">${CLASS_ICONS[n.object_class]||'⚠️'}</div>
-      <div style="font-size:20px;font-weight:700;text-transform:capitalize;color:#fff;letter-spacing:-0.5px;">${n.object_class}</div>
+      <div style="font-size:20px;font-weight:700;text-transform:capitalize;color:var(--text);letter-spacing:-0.5px;">${n.object_class}</div>
       <div style="margin-top:8px;"><span class="badge ${n.severity}">${n.severity}</span></div>
       <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:10px;">${n.timestamp}</div>
       <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">${n.confidence}% confidence</div>
@@ -778,15 +819,15 @@ function loadAnalytics() {
       data:{
         labels:d.daily.map(x=>x.date.slice(5)),
         datasets:[{data:d.daily.map(x=>x.count),
-          backgroundColor:'rgba(255,255,255,0.08)',
-          borderColor:'rgba(255,255,255,0.3)',
+          backgroundColor:'rgba(42,109,181,0.15)',
+          borderColor:'rgba(42,109,181,0.5)',
           borderWidth:1, borderRadius:3}]
       },
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false}},
         scales:{
-          x:{ticks:{color:'rgba(255,255,255,0.25)',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(255,255,255,0.05)'}},
-          y:{ticks:{color:'rgba(255,255,255,0.25)',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true}
+          x:{ticks:{color:'rgba(60,45,20,0.35)',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(60,45,20,0.07)'}},
+          y:{ticks:{color:'rgba(60,45,20,0.35)',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(60,45,20,0.07)'},beginAtZero:true}
         }
       }
     });
@@ -794,7 +835,7 @@ function loadAnalytics() {
     const sCtx=document.getElementById('severity-chart').getContext('2d');
     if(state.sevChart) state.sevChart.destroy();
     const sevOrder=['high','medium','low'];
-    const sevColors={high:'#ff4444',medium:'#f5a623',low:'#22c55e'};
+    const sevColors={high:'#B83232',medium:'#A0620A',low:'#2E7D4F'};
     state.sevChart=new Chart(sCtx,{
       type:'doughnut',
       data:{
@@ -803,7 +844,7 @@ function loadAnalytics() {
           backgroundColor:sevOrder.map(s=>sevColors[s]),borderWidth:0,hoverOffset:4}]
       },
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'rgba(255,255,255,0.4)',font:{family:'Share Tech Mono',size:11},boxWidth:10}}}
+        plugins:{legend:{labels:{color:'rgba(60,45,20,0.5)',font:{family:'Share Tech Mono',size:11},boxWidth:10}}}
       }
     });
 
@@ -811,13 +852,13 @@ function loadAnalytics() {
     const maxC=Math.max(...d.by_class.map(c=>c.count),1);
     cb.innerHTML=d.by_class.map(c=>`
       <div style="display:grid;grid-template-columns:130px 1fr 44px;align-items:center;gap:16px;">
-        <div style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.55);text-transform:capitalize;">
+        <div style="font-size:12px;font-weight:500;color:var(--muted);text-transform:capitalize;">
           ${CLASS_ICONS[c.object_class]||''} ${c.object_class}
         </div>
         <div style="background:var(--surface2);height:5px;border-radius:3px;">
-          <div style="width:${(c.count/maxC)*100}%;background:rgba(255,255,255,0.5);height:100%;border-radius:3px;"></div>
+          <div style="width:${(c.count/maxC)*100}%;background:var(--blue);height:100%;border-radius:3px;opacity:0.6;"></div>
         </div>
-        <div style="font-family:var(--font-mono);font-size:12px;color:rgba(255,255,255,0.35);text-align:right;">${c.count}</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right;">${c.count}</div>
       </div>`).join('')||'<div class="empty">No data yet</div>';
   });
 }
