@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
+  /* ── LIGHT THEME (default) ── */
   :root {
     --bg:        #d7d0c5;
     --surface:   #EDE8DE;
@@ -27,6 +28,33 @@
     --muted:     rgba(60,45,20,0.45);
     --font:      'Inter', sans-serif;
     --font-mono: 'Share Tech Mono', monospace;
+    --chart-tick: rgba(60,45,20,0.35);
+    --chart-grid: rgba(60,45,20,0.07);
+    --nav-bg:    #0D2340;
+  }
+
+  /* ── DARK THEME ── */
+  body.dark {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --surface2:  #212533;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+    --accent:    #a0b4d0;
+    --blue:      #5B9BD5;
+    --blue-bg:   rgba(91,155,213,0.1);
+    --blue-border: rgba(91,155,213,0.3);
+    --green:     #4DC987;
+    --green-bg:  rgba(77,201,135,0.08);
+    --green-border: rgba(77,201,135,0.25);
+    --danger:    #FF7070;
+    --warn:      #FFB84D;
+    --ok:        #4DC987;
+    --text:      #e8eaf0;
+    --muted:     rgba(180,190,210,0.5);
+    --chart-tick: rgba(180,190,210,0.4);
+    --chart-grid: rgba(255,255,255,0.05);
+    --nav-bg:    #080e1a;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,6 +66,7 @@
     font-size: 14px;
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background .25s, color .25s;
   }
 
   /* ── TOP NAV ── */
@@ -47,39 +76,30 @@
     justify-content: space-between;
     padding: 0 40px;
     height: 64px;
-    background: #0D2340;
+    background: var(--nav-bg);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     position: sticky;
     top: 0;
     z-index: 100;
+    transition: background .25s;
   }
 
   .logo { display: flex; align-items: center; gap: 10px; }
-
   .logo-mark {
     width: 28px; height: 28px;
     background: #5B9BD5;
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   }
-
   .logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: #ffffff; }
   .logo-text span { color: rgba(255,255,255,0.45); }
 
   .nav-links { display: flex; align-items: center; gap: 2px; }
-
   .nav-link {
-    padding: 7px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.55);
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all .15s;
-    border: none;
-    background: none;
-    font-family: var(--font);
+    padding: 7px 14px; font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,0.55); cursor: pointer;
+    border-radius: 6px; transition: all .15s;
+    border: none; background: none; font-family: var(--font);
   }
-
   .nav-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
   .nav-link.active { color: #fff; background: rgba(255,255,255,0.15); }
 
@@ -88,60 +108,47 @@
   .live-badge {
     display: flex; align-items: center; gap: 6px;
     font-size: 12px; font-weight: 500; color: var(--green);
-    padding: 5px 12px;
-    border: 1px solid var(--green-border);
-    border-radius: 100px;
-    background: var(--green-bg);
+    padding: 5px 12px; border: 1px solid var(--green-border);
+    border-radius: 100px; background: var(--green-bg);
   }
-
   .live-dot {
     width: 6px; height: 6px;
     background: var(--green); border-radius: 50%;
     animation: blink 1.4s ease-in-out infinite;
   }
-
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   #clock { font-family: var(--font-mono); font-size: 12px; color: rgba(255,255,255,0.45); letter-spacing: 0.5px; }
+
+  /* Dark mode toggle button in header */
+  #dark-toggle {
+    background: none; border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.6); font-size: 14px;
+    padding: 5px 10px; border-radius: 8px; cursor: pointer;
+    transition: all .2s; line-height: 1;
+  }
+  #dark-toggle:hover { border-color: rgba(255,255,255,0.5); color: #fff; background: rgba(255,255,255,0.1); }
 
   #notif-bell {
     position: relative; cursor: pointer; font-size: 18px;
     color: rgba(255,255,255,0.55); transition: color .2s; background: none; border: none; padding: 4px;
   }
   #notif-bell:hover { color: #fff; }
-
   #notif-count {
     position: absolute; top: -2px; right: -4px;
-    background: var(--danger); color: #fff;
-    font-size: 9px; font-weight: 700;
+    background: var(--danger); color: #fff; font-size: 9px; font-weight: 700;
     width: 16px; height: 16px; border-radius: 50%;
     display: none; align-items: center; justify-content: center;
   }
 
   /* ── MAIN ── */
-  main {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 56px 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 48px;
-  }
-
+  main { max-width: 1280px; margin: 0 auto; padding: 56px 40px; display: flex; flex-direction: column; gap: 48px; }
   .page { display: none; flex-direction: column; gap: 40px; }
   .page.active { display: flex; }
 
   /* ── HERO ── */
-  .page-hero h1 {
-    font-size: 52px; font-weight: 800; letter-spacing: -2px;
-    line-height: 1.05; color: var(--text);
-  }
-
-  .page-hero p {
-    margin-top: 14px; font-size: 16px; color: var(--muted);
-    font-weight: 400; max-width: 500px; line-height: 1.65;
-  }
-
+  .page-hero h1 { font-size: 52px; font-weight: 800; letter-spacing: -2px; line-height: 1.05; color: var(--text); }
+  .page-hero p { margin-top: 14px; font-size: 16px; color: var(--muted); font-weight: 400; max-width: 500px; line-height: 1.65; }
   .divider { height: 1px; background: var(--border); }
 
   /* ── STAT GRID ── */
@@ -150,17 +157,13 @@
     gap: 1px; background: rgba(255,255,255,0.15);
     border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; overflow: hidden;
   }
-
   .three-col {
     display: grid; grid-template-columns: repeat(3,1fr);
     gap: 1px; background: var(--border);
     border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   }
-
   .stat-card { background: #1A4A80; padding: 28px 28px 24px; position: relative; transition: background .15s; }
   .stat-card:hover { background: #1E5490; }
-
-  /* analytics stat cards stay beige */
   .three-col .stat-card { background: var(--surface); }
   .three-col .stat-card:hover { background: var(--surface2); }
 
@@ -170,15 +173,9 @@
   .stat-bar.warn   { background: #FFB84D; }
   .stat-bar.ok     { background: #4DC987; }
 
-  .stat-label {
-    font-size: 11px; font-weight: 500; letter-spacing: 0.8px;
-    text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 12px;
-  }
-
+  .stat-label { font-size: 11px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 12px; }
   .stat-value { font-size: 46px; font-weight: 800; letter-spacing: -2px; color: #ffffff; line-height: 1; }
   .stat-sub   { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 6px; }
-
-  /* analytics cards keep beige text */
   .three-col .stat-label { color: var(--muted); }
   .three-col .stat-value { color: var(--text); }
   .three-col .stat-sub   { color: var(--muted); }
@@ -189,18 +186,11 @@
     gap: 1px; background: var(--border);
     border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   }
-
   .card { background: var(--surface); padding: 28px; }
-
-  /* Overview green cards */
   .overview-cards { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.2); }
   .overview-cards .card { background: #1A5C38; }
   .overview-cards .card:hover { background: #1E6840; }
-
-  .card-solo {
-    background: var(--surface);
-    border: 1px solid var(--border); border-radius: 12px; padding: 28px;
-  }
+  .card-solo { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
 
   .card-title {
     font-size: 11px; font-weight: 600; letter-spacing: 1px;
@@ -209,55 +199,35 @@
     border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
   }
-
-  /* green overview cards */
-  .overview-cards .card-title {
-    color: rgba(255,255,255,0.6);
-    border-bottom-color: rgba(255,255,255,0.15);
-  }
-
-  /* card-solo titles */
-  .card-solo .card-title {
-    color: var(--muted);
-    border-bottom-color: var(--border);
-  }
+  .overview-cards .card-title { color: rgba(255,255,255,0.6); border-bottom-color: rgba(255,255,255,0.15); }
 
   /* ── CAMERA ── */
   .camera-wrap {
     position: relative; background: #000;
-    aspect-ratio: 16/9;
-    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    aspect-ratio: 16/9; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   }
-
   .camera-placeholder {
-    width:100%; height:100%;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 14px; color: var(--muted); font-size: 13px; background: #050505;
+    width:100%; height:100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    color: var(--muted); font-size: 13px; background: #050505;
   }
-
   .cam-icon { font-size: 40px; opacity: .2; }
   .camera-overlay { position: absolute; inset: 0; pointer-events: none; }
-
   .camera-overlay::before, .camera-overlay::after {
     content:''; position: absolute; width: 20px; height: 20px;
     border-color: rgba(255,255,255,0.25); border-style: solid;
   }
   .camera-overlay::before { top:14px; left:14px; border-width: 1px 0 0 1px; }
   .camera-overlay::after  { bottom:14px; right:14px; border-width: 0 1px 1px 0; }
-
   .cam-badge {
     position: absolute; top:14px; right:14px;
     font-size: 11px; font-weight: 600; color: var(--ok);
     background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 100px;
-    display: flex; align-items: center; gap: 5px;
-    border: 1px solid rgba(34,197,94,0.2);
+    display: flex; align-items: center; gap: 5px; border: 1px solid rgba(34,197,94,0.2);
   }
 
   /* ── NOTIFY ── */
-  .notify-list {
-    display: flex; flex-direction: column; gap: 1px;
-    max-height: 360px; overflow-y: auto;
-  }
+  .notify-list { display: flex; flex-direction: column; gap: 1px; max-height: 360px; overflow-y: auto; }
   .notify-list::-webkit-scrollbar { width: 3px; }
   .notify-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
@@ -266,40 +236,25 @@
     background: var(--surface2); border-left: 2px solid var(--border2);
     animation: slide-in .25s ease-out; position: relative;
   }
-
-  .overview-cards .notify-item {
-    background: rgba(0,0,0,0.15);
-    border-left-color: rgba(255,255,255,0.2);
-  }
-
+  .overview-cards .notify-item { background: rgba(0,0,0,0.15); border-left-color: rgba(255,255,255,0.2); }
   @keyframes slide-in { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
-
   .notify-item.high   { border-left-color: var(--danger); }
   .notify-item.medium { border-left-color: var(--warn); }
   .notify-item.low    { border-left-color: var(--green); }
 
   .notify-icon { font-size: 20px; flex-shrink: 0; padding-top: 1px; }
   .notify-body { flex: 1; min-width: 0; }
-
-  .notify-title {
-    font-weight: 600; font-size: 13px; color: var(--text);
-    text-transform: capitalize; display: flex; align-items: center; gap: 8px;
-  }
+  .notify-title { font-weight: 600; font-size: 13px; color: var(--text); text-transform: capitalize; display: flex; align-items: center; gap: 8px; }
   .overview-cards .notify-title { color: #ffffff; }
-
   .notify-msg  { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
   .overview-cards .notify-msg { color: rgba(255,255,255,0.6); }
-
-  .notify-meta {
-    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
-    margin-top: 5px; display: flex; gap: 12px;
-  }
+  .notify-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-top: 5px; display: flex; gap: 12px; }
   .overview-cards .notify-meta { color: rgba(255,255,255,0.45); }
 
   .badge {
-    display: inline-flex; align-items: center;
-    padding: 2px 8px; font-size: 10px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.5px; border-radius: 100px;
+    display: inline-flex; align-items: center; padding: 2px 8px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; border-radius: 100px;
   }
   .badge.high   { color: var(--danger); background: rgba(184,50,50,0.1); }
   .badge.medium { color: var(--warn);   background: rgba(160,98,10,0.1); }
@@ -310,8 +265,7 @@
     background: transparent; border: 1px solid rgba(255,255,255,0.25);
     color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 500;
     padding: 4px 12px; border-radius: 6px; cursor: pointer;
-    transition: all .15s; white-space: nowrap; align-self: flex-start;
-    font-family: var(--font);
+    transition: all .15s; white-space: nowrap; align-self: flex-start; font-family: var(--font);
   }
   .ack-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; background: rgba(255,255,255,0.1); }
 
@@ -326,26 +280,18 @@
   .btn-primary {
     background: var(--blue); border: none; color: #fff;
     font-size: 13px; font-weight: 600; padding: 8px 18px;
-    border-radius: 8px; cursor: pointer; transition: opacity .15s;
-    font-family: var(--font);
+    border-radius: 8px; cursor: pointer; transition: opacity .15s; font-family: var(--font);
   }
   .btn-primary:hover { opacity: 0.85; }
 
   /* ── TABLE ── */
   .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-
   .data-table th {
-    font-size: 10px; font-weight: 600; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 1px;
-    padding: 10px 16px; text-align: left;
+    font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; padding: 10px 16px; text-align: left;
     border-bottom: 1px solid var(--border); background: var(--surface);
   }
-
-  .data-table td {
-    padding: 12px 16px; border-bottom: 1px solid var(--border);
-    color: var(--text); font-size: 12px;
-  }
-
+  .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 12px; }
   .data-table tr:hover td { background: var(--surface2); }
   .data-table tr.acked td { opacity: .38; }
 
@@ -353,8 +299,7 @@
     display: inline-flex; align-items: center; gap: 5px;
     padding: 3px 10px; background: var(--blue-bg);
     border: 1px solid var(--blue-border); color: var(--blue);
-    font-size: 11px; text-transform: capitalize;
-    border-radius: 6px; font-weight: 500;
+    font-size: 11px; text-transform: capitalize; border-radius: 6px; font-weight: 500;
   }
 
   /* ── CHART ── */
@@ -363,30 +308,26 @@
   /* ── TOAST ── */
   #toast-container {
     position: fixed; top: 76px; right: 24px;
-    z-index: 9000; display: flex; flex-direction: column;
-    gap: 8px; pointer-events: none;
+    z-index: 9000; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
   }
-
   .toast {
     background: var(--surface); border: 1px solid var(--border2);
     border-top: 2px solid var(--danger);
     padding: 16px 20px; max-width: 340px;
     pointer-events: all; border-radius: 10px;
-    animation: toast-in .25s ease-out;
-    position: relative;
+    animation: toast-in .25s ease-out; position: relative;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
   }
   .toast.medium { border-top-color: var(--warn); }
   .toast.low    { border-top-color: var(--ok); }
-
   @keyframes toast-in { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-
   .toast-title { font-size: 13px; font-weight: 700; color: var(--text); }
   .toast-body  { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-
   .toast-close {
     position: absolute; top: 10px; right: 12px;
     background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px;
   }
+  .toast-close:hover { color: var(--text); }
 
   /* ── EMPTY ── */
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
@@ -394,7 +335,6 @@
 
   /* ── PAGINATION ── */
   .pagination { display: flex; gap: 6px; justify-content: flex-end; margin-top: 16px; }
-
   .page-btn {
     background: transparent; border: 1px solid var(--border2);
     color: var(--muted); font-size: 12px; font-weight: 500;
@@ -410,26 +350,19 @@
     padding: 14px 20px; display: flex; align-items: center;
     gap: 10px; flex-wrap: wrap; border-radius: 10px;
   }
-
-  .demo-label {
-    font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
-    text-transform: uppercase; color: var(--warn); flex-shrink: 0;
-  }
+  .demo-label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--warn); flex-shrink: 0; }
 
   .stream-input {
     background: var(--surface2); border: 1px solid var(--border2);
     color: var(--text); font-family: var(--font-mono); font-size: 12px;
-    padding: 8px 14px; border-radius: 8px; flex: 1; outline: none;
-    transition: border-color .15s;
+    padding: 8px 14px; border-radius: 8px; flex: 1; outline: none; transition: border-color .15s;
   }
-  .stream-input:focus { border-color: var(--blue-border); outline: none; }
+  .stream-input:focus { border-color: var(--blue-border); }
 
   /* ── SETTINGS ── */
   .setting-row {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 24px; padding: 4px 0;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 20px;
+    gap: 24px; padding: 4px 0; border-bottom: 1px solid var(--border); padding-bottom: 20px;
   }
   .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
   .setting-label { flex: 1; }
@@ -439,22 +372,18 @@
   /* toggle switch */
   .toggle { position: relative; display: inline-flex; cursor: pointer; }
   .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
-  .toggle-track {
-    width: 40px; height: 22px; background: var(--border2);
-    border-radius: 100px; transition: background .2s; flex-shrink: 0;
-  }
+  .toggle-track { width: 40px; height: 22px; background: var(--border2); border-radius: 100px; transition: background .2s; flex-shrink: 0; position: relative; }
   .toggle input:checked + .toggle-track { background: var(--blue); }
   .toggle-thumb {
     position: absolute; top: 3px; left: 3px;
     width: 16px; height: 16px; background: #fff;
-    border-radius: 50%; transition: transform .2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
-  .toggle input:checked ~ .toggle-track .toggle-thumb { transform: translateX(18px); }
+  .toggle input:checked ~ .toggle-track .toggle-thumb,
+  .toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(18px); }
 
   input[type="range"] { cursor: pointer; accent-color: var(--blue); }
   select.stream-input { cursor: pointer; }
-
 </style>
 </head>
 <body>
@@ -477,6 +406,7 @@
   <div class="header-right">
     <div class="live-badge"><div class="live-dot"></div> Live</div>
     <div id="clock">--:--:--</div>
+    <button id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
     <button id="notif-bell" onclick="showPage('alerts')" title="Alerts">
       🔔<span id="notif-count">0</span>
     </button>
@@ -525,31 +455,20 @@
       <p>Stream annotated video directly from your camera — choose a source mode below.</p>
     </div>
     <div class="divider"></div>
-
-    <!-- Source mode toggle -->
     <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button id="mode-builtin" class="btn-primary" onclick="setFeedMode('builtin')"
-        style="font-size:12px;padding:6px 16px;">🖥 Built-in (Django)</button>
-      <button id="mode-external" class="demo-btn" onclick="setFeedMode('external')"
-        style="font-size:12px;padding:6px 16px;">📡 External (stream_server.py)</button>
+      <button id="mode-builtin" class="btn-primary" onclick="setFeedMode('builtin')" style="font-size:12px;padding:6px 16px;">🖥 Built-in (Django)</button>
+      <button id="mode-external" class="demo-btn" onclick="setFeedMode('external')" style="font-size:12px;padding:6px 16px;">📡 External (stream_server.py)</button>
     </div>
-
-    <!-- Built-in mode controls -->
     <div id="feed-builtin-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
-      <input id="camera-source" class="stream-input" type="text" placeholder="Camera source: 0 for webcam, or rtsp://…"
-        style="flex:1;" value="0">
+      <input id="camera-source" class="stream-input" type="text" placeholder="Camera source: 0 for webcam, or rtsp://…" style="flex:1;" value="0">
       <button class="btn-primary" onclick="connectBuiltin()">Connect</button>
       <button class="demo-btn" onclick="disconnectStream()">Disconnect</button>
     </div>
-
-    <!-- External mode controls -->
     <div id="feed-external-controls" style="display:none;gap:10px;align-items:center;margin-bottom:14px;">
-      <input id="stream-ip" class="stream-input" type="text" placeholder="Stream server IP, e.g. 192.168.1.72"
-        style="flex:1;">
+      <input id="stream-ip" class="stream-input" type="text" placeholder="Stream server IP, e.g. 192.168.1.72" style="flex:1;">
       <button class="btn-primary" onclick="connectExternal()">Connect</button>
       <button class="demo-btn" onclick="disconnectStream()">Disconnect</button>
     </div>
-
     <div class="camera-wrap">
       <img id="live-stream" src="" style="width:100%;height:100%;object-fit:cover;display:none;" alt="Live Feed"
            onerror="this.style.display='none';document.getElementById('cam-placeholder').style.display='flex';">
@@ -563,7 +482,6 @@
         <span style="width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;animation:blink 1.2s ease-in-out infinite;"></span> REC
       </div>
     </div>
-
     <div class="two-col">
       <div class="card">
         <div class="card-title"><span>Last Detection</span></div>
@@ -571,7 +489,7 @@
       </div>
       <div class="card">
         <div class="card-title"><span>Connection Guide</span></div>
-        <div id="feed-guide" style="padding:16px 0;color:var(--muted);font-size:12px;line-height:2;">
+        <div style="padding:16px 0;color:var(--muted);font-size:12px;line-height:2;">
           <strong style="color:var(--text);">Built-in mode</strong> — streams directly through Django.<br>
           Enter <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">0</code> for webcam or a full
           <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">rtsp://</code> URL.<br><br>
@@ -648,6 +566,7 @@
       <div id="class-breakdown" style="display:flex;flex-direction:column;gap:14px;padding:4px 0;"></div>
     </div>
   </div>
+
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
     <div class="page-hero">
@@ -655,6 +574,23 @@
       <p>Configure detection thresholds, notifications, and system behaviour.</p>
     </div>
     <div class="divider"></div>
+
+    <!-- Appearance -->
+    <div class="card-solo">
+      <div class="card-title"><span>Appearance</span></div>
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">Dark Mode</div>
+            <div class="setting-desc">Switch between light and dark interface themes</div>
+          </div>
+          <label class="toggle">
+            <input id="cfg-dark" type="checkbox" onchange="onDarkToggle(this.checked)">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+      </div>
+    </div>
 
     <!-- Backend -->
     <div class="card-solo">
@@ -683,7 +619,10 @@
 
     <!-- Detection thresholds -->
     <div class="card-solo">
-      <div class="card-title"><span>Detection Confidence Thresholds</span><span style="font-size:11px;font-weight:400;color:var(--muted);">Detections below these values will be ignored</span></div>
+      <div class="card-title">
+        <span>Detection Confidence Thresholds</span>
+        <span style="font-size:11px;font-weight:400;color:var(--muted);">Detections below these values will be ignored</span>
+      </div>
       <div style="display:flex;flex-direction:column;gap:20px;">
         <div class="setting-row">
           <div class="setting-label">
@@ -738,7 +677,7 @@
             <div class="setting-desc">Play an audio tone when a new detection arrives</div>
           </div>
           <label class="toggle">
-            <input id="cfg-sound" type="checkbox" checked>
+            <input id="cfg-sound" type="checkbox">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
           </label>
         </div>
@@ -748,7 +687,7 @@
             <div class="setting-desc">Show popup cards in the top-right corner on new alerts</div>
           </div>
           <label class="toggle">
-            <input id="cfg-toasts" type="checkbox" checked>
+            <input id="cfg-toasts" type="checkbox">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
           </label>
         </div>
@@ -781,9 +720,349 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = { lastNotifId:0, allNotifs:[], histPage:1, trendChart:null, sevChart:null };
+const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶', littering:'🚫' };
+
+// ── Settings (single source of truth) ────────────────────────────────────────
+const DEFAULTS = {
+  apiUrl:       'https://pool-safe-production.up.railway.app',
+  pollInterval: 3,
+  confAnimal:   80,
+  confTrash:    75,
+  confFood:     60,
+  confBottle:   60,
+  sound:        true,
+  toasts:       true,
+  minSeverity:  'low',
+  darkMode:     false,
+};
+
+function getSettings() {
+  try {
+    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('pgSettings') || '{}') };
+  } catch(e) { return { ...DEFAULTS }; }
+}
+
+function saveSettingsObj(cfg) {
+  localStorage.setItem('pgSettings', JSON.stringify(cfg));
+}
+
+// ── Dark mode ─────────────────────────────────────────────────────────────────
+function applyDark(enabled) {
+  document.body.classList.toggle('dark', enabled);
+  document.getElementById('dark-toggle').textContent = enabled ? '☀️' : '🌙';
+  // keep settings toggle in sync if it exists
+  const el = document.getElementById('cfg-dark');
+  if (el) el.checked = enabled;
+}
+
+function toggleDark() {
+  const isDark = document.body.classList.contains('dark');
+  applyDark(!isDark);
+  const cfg = getSettings();
+  cfg.darkMode = !isDark;
+  saveSettingsObj(cfg);
+}
+
+// Called when the settings toggle changes
+function onDarkToggle(checked) {
+  applyDark(checked);
+  const cfg = getSettings();
+  cfg.darkMode = checked;
+  saveSettingsObj(cfg);
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB', {hour12:false});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name)?.classList.add('active');
+  document.querySelector(`[data-page="${name}"]`)?.classList.add('active');
+  if (name === 'history')   loadHistory();
+  if (name === 'analytics') loadAnalytics();
+}
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+function playAlert(severity) {
+  // Always check the live setting before playing
+  if (!getSettings().sound) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = { high:[880,660,880], medium:[660,550], low:[440] };
+    let t = ctx.currentTime;
+    (freqs[severity] || freqs.medium).forEach(f => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = f; o.type = 'square';
+      g.gain.setValueAtTime(.12, t);
+      g.gain.exponentialRampToValueAtTime(.001, t + .16);
+      o.start(t); o.stop(t + .16); t += .2;
+    });
+  } catch(e) {}
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(n) {
+  const cfg = getSettings();
+
+  // Severity gate
+  const rank = { low:0, medium:1, high:2 };
+  if ((rank[n.severity] || 0) < (rank[cfg.minSeverity] || 0)) return;
+
+  // Toast popup
+  if (cfg.toasts) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = 'toast ' + n.severity;
+    t.innerHTML =
+      '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>' +
+      '<div class="toast-title">' + (CLASS_ICONS[n.object_class] || '⚠️') + ' ' + n.object_class + ' detected</div>' +
+      '<div class="toast-body">' + n.message + '</div>' +
+      '<div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;opacity:.7;">' +
+        n.confidence + '% · ' + n.location + ' · ' + n.timestamp +
+      '</div>';
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 7000);
+  }
+
+  // Sound (checked inside playAlert too, but explicit here for clarity)
+  if (cfg.sound) playAlert(n.severity);
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+function buildNotifItem(n) {
+  return `
+    <div class="notify-item ${n.severity}" id="ni-${n.id}">
+      <div class="notify-icon">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
+      <div class="notify-body">
+        <div class="notify-title">${n.object_class} <span class="badge ${n.severity}">${n.severity}</span></div>
+        <div class="notify-msg">${n.message}</div>
+        <div class="notify-meta"><span>${n.timestamp}</span><span>${n.location}</span><span>${n.confidence}% conf</span></div>
+      </div>
+      <button class="ack-btn" onclick="acknowledge(${n.event_id},${n.id})">Clear</button>
+    </div>`;
+}
+
+function acknowledge(eventId, notifId) {
+  fetch(`/api/events/${eventId}/acknowledge/`, { method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')} })
+    .then(() => {
+      document.getElementById(`ni-${notifId}`)?.remove();
+      state.allNotifs = state.allNotifs.filter(n => n.id !== notifId);
+      updateUnreadBadge(); refreshOverviewNotifs();
+    });
+}
+
+function clearAllAlerts() {
+  state.allNotifs.forEach(n =>
+    fetch(`/api/events/${n.event_id}/acknowledge/`, { method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')} })
+  );
+  state.allNotifs = []; state.lastNotifId = 0;
+  updateUnreadBadge(); refreshOverviewNotifs();
+}
+
+function refreshOverviewNotifs() {
+  const el = document.getElementById('overview-notifs');
+  const al = document.getElementById('alerts-list');
+  if (!state.allNotifs.length) {
+    el.innerHTML = '<div class="empty">No alerts</div>';
+    al.innerHTML = '<div class="empty">No active alerts</div>';
+    return;
+  }
+  el.innerHTML = state.allNotifs.slice(0, 5).map(buildNotifItem).join('');
+  al.innerHTML = state.allNotifs.map(buildNotifItem).join('');
+  document.getElementById('recent-ts').textContent = state.allNotifs[0]?.timestamp || '';
+}
+
+function updateUnreadBadge() {
+  const count = state.allNotifs.length;
+  const b = document.getElementById('notif-count');
+  b.textContent = count; b.style.display = count ? 'flex' : 'none';
+  const el = document.getElementById('stat-unread');
+  if (el) el.textContent = count;
+}
+
+// ── Poll ──────────────────────────────────────────────────────────────────────
+let _pollTimer = null;
+
+function poll() {
+  fetch(`/api/notifications/poll/?since_id=${state.lastNotifId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.notifications?.length) {
+        data.notifications.forEach(n => {
+          if (!state.allNotifs.find(x => x.id === n.id)) {
+            state.allNotifs.unshift(n);
+            showToast(n);   // ← single call, settings checked inside
+          }
+          state.lastNotifId = Math.max(state.lastNotifId, n.id);
+        });
+        updateUnreadBadge(); refreshOverviewNotifs(); updateFeedLatest();
+      }
+    }).catch(() => {});
+}
+
+function startPolling(intervalSecs) {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollTimer = setInterval(poll, (intervalSecs || 3) * 1000);
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function loadStats() {
+  fetch('/api/stats/').then(r => r.json()).then(d => {
+    document.getElementById('stat-total').textContent  = d.total_all;
+    document.getElementById('stat-24h').textContent    = d.total_24h;
+    document.getElementById('stat-today').textContent  = d.total_today;
+    document.getElementById('stat-unread').textContent = d.unread_notifications;
+    const b = document.getElementById('notif-count');
+    b.textContent = d.unread_notifications;
+    b.style.display = d.unread_notifications ? 'flex' : 'none';
+    renderClassChart(d.by_class);
+  });
+}
+
+function renderClassChart(byClass) {
+  const el = document.getElementById('class-chart-wrap');
+  if (!byClass?.length) { el.innerHTML = '<div class="empty">No data</div>'; return; }
+  const max = Math.max(...byClass.map(c => c.count), 1);
+  el.innerHTML = byClass.map(c => `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:72px;font-size:11px;color:rgba(255,255,255,0.6);text-transform:capitalize;flex-shrink:0;font-weight:500;">
+        ${CLASS_ICONS[c.object_class] || ''} ${c.object_class}
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,0.1);height:5px;border-radius:3px;">
+        <div style="width:${(c.count/max)*100}%;background:#5B9BD5;height:100%;border-radius:3px;transition:width .4s;opacity:0.7;"></div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.5);width:22px;text-align:right;">${c.count}</div>
+    </div>`).join('');
+}
+
+function updateFeedLatest() {
+  const el = document.getElementById('feed-latest');
+  if (!el || !state.allNotifs.length) { if (el) el.innerHTML = '<div class="empty">No recent detections</div>'; return; }
+  const n = state.allNotifs[0];
+  el.innerHTML = `
+    <div style="padding:12px 0;text-align:center;">
+      <div style="font-size:36px;margin-bottom:12px;">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
+      <div style="font-size:20px;font-weight:700;text-transform:capitalize;color:var(--text);letter-spacing:-0.5px;">${n.object_class}</div>
+      <div style="margin-top:8px;"><span class="badge ${n.severity}">${n.severity}</span></div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:10px;">${n.timestamp}</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">${n.confidence}% confidence</div>
+    </div>`;
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+function loadHistory(page) {
+  page = page || state.histPage; state.histPage = page;
+  fetch(`/api/history/?page=${page}`).then(r => r.json()).then(d => {
+    document.getElementById('history-count').textContent = `${d.total} events`;
+    const tbody = document.getElementById('history-tbody');
+    if (!d.events.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No events</td></tr>'; return; }
+    tbody.innerHTML = d.events.map(e => `
+      <tr class="${e.acknowledged ? 'acked' : ''}">
+        <td style="color:var(--muted);">#${e.id}</td>
+        <td><span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span></td>
+        <td>${e.confidence}%</td>
+        <td><span class="badge ${e.severity}">${e.severity}</span></td>
+        <td>${e.location}</td>
+        <td style="color:var(--muted);">${e.timestamp}</td>
+        <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Cleared' : '● Active'}</td>
+        <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Clear</button>` : ''}</td>
+      </tr>`).join('');
+    const pages = Math.ceil(d.total / d.per_page);
+    document.getElementById('history-pagination').innerHTML = Array.from({length:pages}, (_,i) =>
+      `<button class="page-btn ${i+1 === page ? 'active' : ''}" onclick="loadHistory(${i+1})">${i+1}</button>`
+    ).join('');
+  });
+}
+
+function ackFromHistory(eventId) {
+  fetch(`/api/events/${eventId}/acknowledge/`, { method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')} })
+    .then(() => loadHistory());
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+function loadAnalytics() {
+  fetch('/api/stats/').then(r => r.json()).then(d => {
+    document.getElementById('an-total').textContent = d.total_all;
+    document.getElementById('an-high').textContent  = d.by_severity.find(s => s.severity === 'high')?.count || 0;
+    document.getElementById('an-avg').textContent   = (d.daily.reduce((a,b) => a + b.count, 0) / 7).toFixed(1);
+
+    const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-tick').trim() || 'rgba(60,45,20,0.35)';
+    const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim() || 'rgba(60,45,20,0.07)';
+
+    const tCtx = document.getElementById('trend-chart').getContext('2d');
+    if (state.trendChart) state.trendChart.destroy();
+    state.trendChart = new Chart(tCtx, {
+      type:'bar',
+      data:{
+        labels: d.daily.map(x => x.date.slice(5)),
+        datasets:[{ data: d.daily.map(x => x.count),
+          backgroundColor:'rgba(42,109,181,0.15)', borderColor:'rgba(42,109,181,0.5)',
+          borderWidth:1, borderRadius:3 }]
+      },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ ticks:{ color:tickColor, font:{family:'Share Tech Mono',size:10} }, grid:{ color:gridColor } },
+          y:{ ticks:{ color:tickColor, font:{family:'Share Tech Mono',size:10} }, grid:{ color:gridColor }, beginAtZero:true }
+        }
+      }
+    });
+
+    const sCtx = document.getElementById('severity-chart').getContext('2d');
+    if (state.sevChart) state.sevChart.destroy();
+    const sevOrder = ['high','medium','low'];
+    const sevColors = { high:'#B83232', medium:'#A0620A', low:'#2E7D4F' };
+    state.sevChart = new Chart(sCtx, {
+      type:'doughnut',
+      data:{
+        labels:['High','Medium','Low'],
+        datasets:[{ data: sevOrder.map(s => d.by_severity.find(x => x.severity === s)?.count || 0),
+          backgroundColor: sevOrder.map(s => sevColors[s]), borderWidth:0, hoverOffset:4 }]
+      },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color: tickColor, font:{family:'Share Tech Mono',size:11}, boxWidth:10 } } }
+      }
+    });
+
+    const cb = document.getElementById('class-breakdown');
+    const maxC = Math.max(...d.by_class.map(c => c.count), 1);
+    cb.innerHTML = d.by_class.map(c => `
+      <div style="display:grid;grid-template-columns:130px 1fr 44px;align-items:center;gap:16px;">
+        <div style="font-size:12px;font-weight:500;color:var(--muted);text-transform:capitalize;">
+          ${CLASS_ICONS[c.object_class] || ''} ${c.object_class}
+        </div>
+        <div style="background:var(--surface2);height:5px;border-radius:3px;">
+          <div style="width:${(c.count/maxC)*100}%;background:var(--blue);height:100%;border-radius:3px;opacity:0.6;"></div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right;">${c.count}</div>
+      </div>`).join('') || '<div class="empty">No data yet</div>';
+  });
+}
+
+// ── Simulate ──────────────────────────────────────────────────────────────────
+function simulate(objClass) {
+  const confidence = (0.7 + Math.random() * 0.28).toFixed(2);
+  fetch('/api/ingest/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
+    body: JSON.stringify({ object_class:objClass, confidence:parseFloat(confidence), location_note:'Pool Deck - Zone A' })
+  }).then(() => loadStats());
+}
+
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
 
 // ── Live Feed ─────────────────────────────────────────────────────────────────
-
 let feedMode = 'builtin';
 
 function setFeedMode(mode) {
@@ -792,7 +1071,6 @@ function setFeedMode(mode) {
   document.getElementById('feed-external-controls').style.display = mode === 'external' ? 'flex' : 'none';
   document.getElementById('mode-builtin').className  = mode === 'builtin'  ? 'btn-primary' : 'demo-btn';
   document.getElementById('mode-external').className = mode === 'external' ? 'btn-primary' : 'demo-btn';
-  // Update placeholder hint
   const hint = document.getElementById('cam-placeholder-hint');
   if (hint) hint.textContent = mode === 'builtin'
     ? 'Enter a camera source above and click Connect'
@@ -820,302 +1098,13 @@ function connectExternal() {
   localStorage.setItem('streamIP', ip);
 }
 
-// Keep old name as alias for disconnect buttons
-function connectStream() { connectExternal(); }
-
 function disconnectStream() {
   const img = document.getElementById('live-stream');
   img.src = ''; img.style.display = 'none';
   document.getElementById('cam-placeholder').style.display = 'flex';
 }
 
-window.addEventListener('load', () => {
-  const savedMode = localStorage.getItem('feedMode') || 'builtin';
-  setFeedMode(savedMode);
-  const savedIP = localStorage.getItem('streamIP');
-  if (savedIP) document.getElementById('stream-ip').value = savedIP;
-  const savedSrc = localStorage.getItem('cameraSource');
-  if (savedSrc) document.getElementById('camera-source').value = savedSrc;
-});
-
-
-
-const state = { lastNotifId:0, allNotifs:[], histPage:1, trendChart:null, sevChart:null };
-const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶', littering:'🚫' };
-
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'+name)?.classList.add('active');
-  document.querySelector(`[data-page="${name}"]`)?.classList.add('active');
-  if (name==='history')   loadHistory();
-  if (name==='analytics') loadAnalytics();
-}
-
-function updateClock() {
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB',{hour12:false});
-}
-setInterval(updateClock,1000); updateClock();
-
-function playAlert(severity) {
-  try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const freqs={high:[880,660,880],medium:[660,550],low:[440]};
-    let t=ctx.currentTime;
-    (freqs[severity]||freqs.medium).forEach(f=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=f;o.type='square';
-      g.gain.setValueAtTime(.12,t);
-      g.gain.exponentialRampToValueAtTime(.001,t+.16);
-      o.start(t);o.stop(t+.16);t+=.2;
-    });
-  }catch(e){}
-}
-
-function showToast(n) {
-  const c=document.getElementById('toast-container');
-  const t=document.createElement('div');
-  t.className=`toast ${n.severity}`;
-  t.innerHTML=`
-    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-    <div class="toast-title">${CLASS_ICONS[n.object_class]||'⚠️'} ${n.object_class} detected</div>
-    <div class="toast-body">${n.message}</div>
-    <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;opacity:.7;">
-      ${n.confidence}% · ${n.location} · ${n.timestamp}
-    </div>`;
-  c.appendChild(t);
-  setTimeout(()=>t.remove(),7000);
-  playAlert(n.severity);
-}
-
-function buildNotifItem(n) {
-  return `
-    <div class="notify-item ${n.severity}" id="ni-${n.id}">
-      <div class="notify-icon">${CLASS_ICONS[n.object_class]||'⚠️'}</div>
-      <div class="notify-body">
-        <div class="notify-title">${n.object_class} <span class="badge ${n.severity}">${n.severity}</span></div>
-        <div class="notify-msg">${n.message}</div>
-        <div class="notify-meta"><span>${n.timestamp}</span><span>${n.location}</span><span>${n.confidence}% conf</span></div>
-      </div>
-      <button class="ack-btn" onclick="acknowledge(${n.event_id},${n.id})">Clear</button>
-    </div>`;
-}
-
-function acknowledge(eventId,notifId) {
-  fetch(`/api/events/${eventId}/acknowledge/`,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}})
-    .then(()=>{
-      document.getElementById(`ni-${notifId}`)?.remove();
-      state.allNotifs=state.allNotifs.filter(n=>n.id!==notifId);
-      updateUnreadBadge();refreshOverviewNotifs();
-    });
-}
-
-function clearAllAlerts() {
-  state.allNotifs.forEach(n=>fetch(`/api/events/${n.event_id}/acknowledge/`,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}));
-  state.allNotifs=[];state.lastNotifId=0;
-  updateUnreadBadge();refreshOverviewNotifs();
-}
-
-function refreshOverviewNotifs() {
-  const el=document.getElementById('overview-notifs');
-  const al=document.getElementById('alerts-list');
-  if (!state.allNotifs.length) {
-    el.innerHTML='<div class="empty">No alerts</div>';
-    al.innerHTML='<div class="empty">No active alerts</div>';
-    return;
-  }
-  el.innerHTML=state.allNotifs.slice(0,5).map(buildNotifItem).join('');
-  al.innerHTML=state.allNotifs.map(buildNotifItem).join('');
-  document.getElementById('recent-ts').textContent=state.allNotifs[0]?.timestamp||'';
-}
-
-function updateUnreadBadge() {
-  const count=state.allNotifs.length;
-  const b=document.getElementById('notif-count');
-  b.textContent=count; b.style.display=count?'flex':'none';
-  const el=document.getElementById('stat-unread');
-  if(el) el.textContent=count;
-}
-
-function poll() {
-  fetch(`/api/notifications/poll/?since_id=${state.lastNotifId}`)
-    .then(r=>r.json())
-    .then(data=>{
-      if(data.notifications?.length){
-        data.notifications.forEach(n=>{
-          if(!state.allNotifs.find(x=>x.id===n.id)){state.allNotifs.unshift(n);showToast(n);}
-          state.lastNotifId=Math.max(state.lastNotifId,n.id);
-        });
-        updateUnreadBadge();refreshOverviewNotifs();updateFeedLatest();
-      }
-    }).catch(()=>{});
-}
-
-function loadStats() {
-  fetch('/api/stats/').then(r=>r.json()).then(d=>{
-    document.getElementById('stat-total').textContent  = d.total_all;
-    document.getElementById('stat-24h').textContent    = d.total_24h;
-    document.getElementById('stat-today').textContent  = d.total_today;
-    document.getElementById('stat-unread').textContent = d.unread_notifications;
-    const b=document.getElementById('notif-count');
-    b.textContent=d.unread_notifications;
-    b.style.display=d.unread_notifications?'flex':'none';
-    renderClassChart(d.by_class);
-  });
-}
-
-function renderClassChart(byClass) {
-  const el=document.getElementById('class-chart-wrap');
-  if(!byClass?.length){el.innerHTML='<div class="empty">No data</div>';return;}
-  const max=Math.max(...byClass.map(c=>c.count),1);
-  el.innerHTML=byClass.map(c=>`
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:72px;font-size:11px;color:var(--muted);text-transform:capitalize;flex-shrink:0;font-weight:500;">
-        ${CLASS_ICONS[c.object_class]||''} ${c.object_class}
-      </div>
-      <div style="flex:1;background:var(--surface2);height:5px;border-radius:3px;">
-        <div style="width:${(c.count/max)*100}%;background:var(--blue);height:100%;border-radius:3px;transition:width .4s;opacity:0.6;"></div>
-      </div>
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);width:22px;text-align:right;">${c.count}</div>
-    </div>`).join('');
-}
-
-function updateFeedLatest() {
-  const el=document.getElementById('feed-latest');
-  if(!el||!state.allNotifs.length){if(el)el.innerHTML='<div class="empty">No recent detections</div>';return;}
-  const n=state.allNotifs[0];
-  el.innerHTML=`
-    <div style="padding:12px 0;text-align:center;">
-      <div style="font-size:36px;margin-bottom:12px;">${CLASS_ICONS[n.object_class]||'⚠️'}</div>
-      <div style="font-size:20px;font-weight:700;text-transform:capitalize;color:var(--text);letter-spacing:-0.5px;">${n.object_class}</div>
-      <div style="margin-top:8px;"><span class="badge ${n.severity}">${n.severity}</span></div>
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:10px;">${n.timestamp}</div>
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">${n.confidence}% confidence</div>
-    </div>`;
-}
-
-function loadHistory(page) {
-  page=page||state.histPage; state.histPage=page;
-  fetch(`/api/history/?page=${page}`).then(r=>r.json()).then(d=>{
-    document.getElementById('history-count').textContent=`${d.total} events`;
-    const tbody=document.getElementById('history-tbody');
-    if(!d.events.length){tbody.innerHTML='<tr><td colspan="8" class="empty">No events</td></tr>';return;}
-    tbody.innerHTML=d.events.map(e=>`
-      <tr class="${e.acknowledged?'acked':''}">
-        <td style="color:var(--muted);">#${e.id}</td>
-        <td><span class="class-chip">${CLASS_ICONS[e.object_class]||''} ${e.object_class}</span></td>
-        <td>${e.confidence}%</td>
-        <td><span class="badge ${e.severity}">${e.severity}</span></td>
-        <td>${e.location}</td>
-        <td style="color:var(--muted);">${e.timestamp}</td>
-        <td style="color:${e.acknowledged?'var(--ok)':'var(--warn)'};">${e.acknowledged?'✓ Cleared':'● Active'}</td>
-        <td>${!e.acknowledged?`<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Clear</button>`:''}</td>
-      </tr>`).join('');
-    const pages=Math.ceil(d.total/d.per_page);
-    document.getElementById('history-pagination').innerHTML=Array.from({length:pages},(_,i)=>
-      `<button class="page-btn ${i+1===page?'active':''}" onclick="loadHistory(${i+1})">${i+1}</button>`
-    ).join('');
-  });
-}
-
-function ackFromHistory(eventId) {
-  fetch(`/api/events/${eventId}/acknowledge/`,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}})
-    .then(()=>loadHistory());
-}
-
-function loadAnalytics() {
-  fetch('/api/stats/').then(r=>r.json()).then(d=>{
-    document.getElementById('an-total').textContent=d.total_all;
-    document.getElementById('an-high').textContent=d.by_severity.find(s=>s.severity==='high')?.count||0;
-    document.getElementById('an-avg').textContent=(d.daily.reduce((a,b)=>a+b.count,0)/7).toFixed(1);
-
-    const tCtx=document.getElementById('trend-chart').getContext('2d');
-    if(state.trendChart) state.trendChart.destroy();
-    state.trendChart=new Chart(tCtx,{
-      type:'bar',
-      data:{
-        labels:d.daily.map(x=>x.date.slice(5)),
-        datasets:[{data:d.daily.map(x=>x.count),
-          backgroundColor:'rgba(42,109,181,0.15)',
-          borderColor:'rgba(42,109,181,0.5)',
-          borderWidth:1, borderRadius:3}]
-      },
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false}},
-        scales:{
-          x:{ticks:{color:'rgba(60,45,20,0.35)',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(60,45,20,0.07)'}},
-          y:{ticks:{color:'rgba(60,45,20,0.35)',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(60,45,20,0.07)'},beginAtZero:true}
-        }
-      }
-    });
-
-    const sCtx=document.getElementById('severity-chart').getContext('2d');
-    if(state.sevChart) state.sevChart.destroy();
-    const sevOrder=['high','medium','low'];
-    const sevColors={high:'#B83232',medium:'#A0620A',low:'#2E7D4F'};
-    state.sevChart=new Chart(sCtx,{
-      type:'doughnut',
-      data:{
-        labels:['High','Medium','Low'],
-        datasets:[{data:sevOrder.map(s=>d.by_severity.find(x=>x.severity===s)?.count||0),
-          backgroundColor:sevOrder.map(s=>sevColors[s]),borderWidth:0,hoverOffset:4}]
-      },
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'rgba(60,45,20,0.5)',font:{family:'Share Tech Mono',size:11},boxWidth:10}}}
-      }
-    });
-
-    const cb=document.getElementById('class-breakdown');
-    const maxC=Math.max(...d.by_class.map(c=>c.count),1);
-    cb.innerHTML=d.by_class.map(c=>`
-      <div style="display:grid;grid-template-columns:130px 1fr 44px;align-items:center;gap:16px;">
-        <div style="font-size:12px;font-weight:500;color:var(--muted);text-transform:capitalize;">
-          ${CLASS_ICONS[c.object_class]||''} ${c.object_class}
-        </div>
-        <div style="background:var(--surface2);height:5px;border-radius:3px;">
-          <div style="width:${(c.count/maxC)*100}%;background:var(--blue);height:100%;border-radius:3px;opacity:0.6;"></div>
-        </div>
-        <div style="font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right;">${c.count}</div>
-      </div>`).join('')||'<div class="empty">No data yet</div>';
-  });
-}
-
-function simulate(objClass) {
-  const confidence=(0.7+Math.random()*0.28).toFixed(2);
-  fetch('/api/ingest/',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-    body:JSON.stringify({object_class:objClass,confidence:parseFloat(confidence),location_note:'Pool Deck - Zone A'})
-  }).then(()=>loadStats());
-}
-
-function getCookie(name) {
-  const v=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
-  return v?v.pop():'';
-}
-
-loadStats();
-setInterval(loadStats,30000);
-
-// ── Settings ──────────────────────────────────────────────────────────────────
-
-const DEFAULTS = {
-  apiUrl:       'https://pool-safe-production.up.railway.app',
-  pollInterval: 3,
-  confAnimal:   80,
-  confTrash:    75,
-  confFood:     60,
-  confBottle:   60,
-  sound:        true,
-  toasts:       true,
-  minSeverity:  'low',
-};
-
-function getSettings() {
-  return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('pgSettings') || '{}') };
-}
-
+// ── Settings UI ───────────────────────────────────────────────────────────────
 function loadSettingsUI() {
   const cfg = getSettings();
   document.getElementById('cfg-api-url').value       = cfg.apiUrl;
@@ -1127,6 +1116,7 @@ function loadSettingsUI() {
   document.getElementById('cfg-sound').checked       = cfg.sound;
   document.getElementById('cfg-toasts').checked      = cfg.toasts;
   document.getElementById('cfg-min-severity').value  = cfg.minSeverity;
+  document.getElementById('cfg-dark').checked        = cfg.darkMode;
   syncSliderLabels();
 }
 
@@ -1148,9 +1138,11 @@ function saveSettings() {
     sound:        document.getElementById('cfg-sound').checked,
     toasts:       document.getElementById('cfg-toasts').checked,
     minSeverity:  document.getElementById('cfg-min-severity').value,
+    darkMode:     document.getElementById('cfg-dark').checked,
   };
-  localStorage.setItem('pgSettings', JSON.stringify(cfg));
-  applyRuntimeSettings(cfg);
+  saveSettingsObj(cfg);
+  applyDark(cfg.darkMode);
+  startPolling(cfg.pollInterval);
   const saved = document.getElementById('settings-saved');
   saved.style.opacity = '1';
   setTimeout(() => saved.style.opacity = '0', 2200);
@@ -1159,47 +1151,41 @@ function saveSettings() {
 function resetSettings() {
   localStorage.removeItem('pgSettings');
   loadSettingsUI();
-  applyRuntimeSettings(DEFAULTS);
+  applyDark(DEFAULTS.darkMode);
+  startPolling(DEFAULTS.pollInterval);
 }
 
-let _pollTimer = null;
-
-function applyRuntimeSettings(cfg) {
-  if (_pollTimer) clearInterval(_pollTimer);
-  _pollTimer = setInterval(poll, (cfg.pollInterval || 3) * 1000);
-}
-
-// Wrap showToast to honour sound / toasts / minSeverity
-const _baseShowToast = showToast;
-showToast = function(n) {
-  const cfg = getSettings();
-  const rank = { low: 0, medium: 1, high: 2 };
-  if ((rank[n.severity] || 0) < (rank[cfg.minSeverity] || 0)) return;
-  if (cfg.toasts) {
-    const c = document.getElementById('toast-container');
-    const t = document.createElement('div');
-    t.className = 'toast ' + n.severity;
-    t.innerHTML = '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>' +
-      '<div class="toast-title">' + (CLASS_ICONS[n.object_class]||'⚠️') + ' ' + n.object_class + ' detected</div>' +
-      '<div class="toast-body">' + n.message + '</div>' +
-      '<div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;opacity:.7;">' +
-      n.confidence + '% · ' + n.location + ' · ' + n.timestamp + '</div>';
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 7000);
-  }
-  if (cfg.sound) playAlert(n.severity);
-};
-
+// ── Boot ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
+  const cfg = getSettings();
+
+  // Apply dark mode immediately (before paint if possible)
+  applyDark(cfg.darkMode);
+
+  // Settings UI
   loadSettingsUI();
+
+  // Slider live labels
   ['animal','trash','food','bottle'].forEach(cls => {
     const el = document.getElementById('cfg-conf-' + cls);
     if (el) el.addEventListener('input', syncSliderLabels);
   });
-  const cfg = getSettings();
-  applyRuntimeSettings(cfg);
-  poll();
+
+  // Feed mode
+  const savedMode = localStorage.getItem('feedMode') || 'builtin';
+  setFeedMode(savedMode);
+  const savedIP  = localStorage.getItem('streamIP');
+  if (savedIP) document.getElementById('stream-ip').value = savedIP;
+  const savedSrc = localStorage.getItem('cameraSource');
+  if (savedSrc) document.getElementById('camera-source').value = savedSrc;
+
+  // Stats + polling
+  loadStats();
+  setInterval(loadStats, 30000);
+  startPolling(cfg.pollInterval);
+  poll(); // immediate first poll
 });
+
 </script>
 </body>
 </html>

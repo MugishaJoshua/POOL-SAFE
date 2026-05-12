@@ -6,21 +6,17 @@ from ultralytics import YOLO
 # ── Config ─────────────────────────────────────────────
 MODEL_PATH     = "best.pt"
 DJANGO_URL     = "https://pool-safe-production.up.railway.app/api/ingest/"
-FRAME_INTERVAL = 10             # seconds before re-alerting the same class
+FRAME_INTERVAL = 10
 
-# Detection threshold — YOLO pre-filters below this.
-# Keep low so MIN_SEND_CONFIDENCE does the per-class gating.
-CONFIDENCE     = 0.40
+CONFIDENCE     = 0.45          # YOLO pre-filter (keep low, we gate below)
+CAMERA_SOURCE  = 0
+CAP_BACKEND    = cv2.CAP_DSHOW
 
-# Camera source — choose one:
-# CAMERA_SOURCE = 0                                            # webcam
-# CAMERA_SOURCE = "rtsp://user:pass@192.168.1.100:554/stream" # IP camera
-CAMERA_SOURCE = 0
+# ── NEW: Two-tier threshold ──────────────────────────────
+DETECT_THRESHOLD = 0.80        # print to terminal if ≥ this
+ALERT_THRESHOLD  = 0.90        # send to Django if ≥ this
 
-# ── Camera backend  ────────────────────────
-CAP_BACKEND = cv2.CAP_DSHOW     # change to cv2.CAP_ANY if not on Windows
-
-# ── Class config
+# ── Class config ────────────────────────────────────────
 SEVERITY_MAP = {
     "Animal":  "high",
     "Bottle":  "medium",
@@ -35,37 +31,19 @@ CLASS_MAP = {
     "Trash":   "trash",
 }
 
-# Per-class minimum confidence before sending to backend.
-# Higher bar for Animal (human misfires) and Trash (model default bias).
-# Person is not a threat class — set to 1.0 to block it entirely.
-MIN_SEND_CONFIDENCE = {
-    "Animal":  0.80,
-    "Bottle":  0.60,
-    "Food":    0.60,
-    "Trash":   0.75,
-    "Person":  1.01,   # effectively disabled — humans are not a threat class
-}
-
-DEFAULT_SEVERITY     = "low"
-DEFAULT_OBJECT_CLASS = "trash"
+THREAT_CLASSES = set(CLASS_MAP.keys())   # {"Animal", "Bottle", "Food", "Trash"}
 
 # ── Human filter ────────────────────────────────────────
-# Loads YOLOv8n (tiny general model) to check if a detected region
-# is actually a person before sending an "Animal" alert.
-# Prevents humans from being reported as animals.
 FILTER_HUMANS = True
-
 human_model = None
 if FILTER_HUMANS:
     try:
-        human_model = YOLO("yolov8n.pt")   # downloads automatically (~6 MB)
+        human_model = YOLO("yolov8n.pt")
         print("Human filter loaded ✅")
     except Exception as e:
         print(f"⚠️  Human filter unavailable ({e}) — continuing without it")
-        human_model = None
 
 def is_human(frame, x1, y1, x2, y2) -> bool:
-    """Returns True if the cropped region contains a person."""
     if human_model is None:
         return False
     crop = frame[y1:y2, x1:x2]
@@ -74,7 +52,7 @@ def is_human(frame, x1, y1, x2, y2) -> bool:
     results = human_model(crop, verbose=False, conf=0.5)
     for r in results:
         for box in r.boxes:
-            if int(box.cls[0]) == 0:   # class 0 = person in COCO
+            if int(box.cls[0]) == 0:
                 return True
     return False
 
@@ -83,44 +61,44 @@ print("Loading PoolGuard model...")
 model = YOLO(MODEL_PATH)
 print(f"Model loaded ✅  |  Classes: {list(model.names.values())}")
 
-# ── Start camera ────────────────────────────────────────
+# ── Camera ──────────────────────────────────────────────
 def open_camera(source, backend=CAP_BACKEND, retries=5):
     for attempt in range(1, retries + 1):
         cap = cv2.VideoCapture(source, backend)
         if cap.isOpened():
-            print(f"Camera opened ✅ (backend={'DSHOW' if backend == cv2.CAP_DSHOW else 'default'})")
+            print(f"Camera opened ✅")
             return cap
         cap.release()
         if attempt == 1 and backend != cv2.CAP_ANY:
             print("DSHOW failed, retrying with default backend...")
             backend = cv2.CAP_ANY
         else:
-            print(f"Camera open attempt {attempt}/{retries} failed, retrying in 2 s...")
+            print(f"Attempt {attempt}/{retries} failed, retrying in 2s...")
             time.sleep(2)
-    raise RuntimeError(f"Cannot open camera source after {retries} attempts: {source}")
+    raise RuntimeError(f"Cannot open camera after {retries} attempts: {source}")
 
 cap = open_camera(CAMERA_SOURCE)
-print("Watching for threats...\n")
+print(f"\nWatching for threats... (detect ≥ {DETECT_THRESHOLD:.0%} | alert ≥ {ALERT_THRESHOLD:.0%})\n")
 
-last_sent = {}  # {class_name: timestamp}
+last_sent = {}
 
 
 def send_detection(label: str, confidence: float, camera_id: str = "CAM-01"):
-    severity     = SEVERITY_MAP.get(label, DEFAULT_SEVERITY)
-    object_class = CLASS_MAP.get(label, DEFAULT_OBJECT_CLASS)
+    severity     = SEVERITY_MAP[label]
+    object_class = CLASS_MAP[label]
     payload = {
         "object_class":  object_class,
-        "confidence":    round(float(confidence), 4),
+        "confidence":    round(confidence, 4),
         "location_note": f"{camera_id}: {label}",
     }
     try:
         response = requests.post(DJANGO_URL, json=payload, timeout=3)
         if response.status_code == 201:
-            print(f"  ✅ Sent: {label} → {object_class} ({confidence:.0%}) [{severity}]")
+            print(f"  🚨 ALERT SENT: {label} → {object_class}  {confidence:.0%}  [{severity}]")
         else:
-            print(f"  ⚠️  Server responded {response.status_code}: {response.text}")
+            print(f"  ⚠️  Server {response.status_code}: {response.text}")
     except requests.exceptions.RequestException as e:
-        print(f"  ❌ Failed to send detection: {e}")
+        print(f"  ❌ Send failed: {e}")
 
 
 # ── Main loop ───────────────────────────────────────────
@@ -128,7 +106,7 @@ try:
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("⚠️  Lost camera feed — attempting reconnect...")
+            print("⚠️  Lost feed — reconnecting...")
             cap.release()
             time.sleep(2)
             try:
@@ -147,37 +125,37 @@ try:
                 confidence = float(box.conf[0])
                 label      = model.names[class_id]
 
-                # ── Filter 0: skip classes that aren't threat classes ──
-                if label not in CLASS_MAP:
-                    print(f"  [SKIP] {label} is not a threat class")
+                # ── Only process threat classes ──────────────────────
+                if label not in THREAT_CLASSES:
                     continue
 
-                # ── Filter 1: per-class confidence gate ──
-                min_conf = MIN_SEND_CONFIDENCE.get(label, 0.60)
-                if confidence < min_conf:
-                    print(f"  [SKIP] {label} {confidence:.0%} < {min_conf:.0%} threshold")
+                # ── Gate 1: must meet detection threshold to even print
+                if confidence < DETECT_THRESHOLD:
                     continue
 
-                # ── Filter 2: human check (Animal class only) ──
+                severity = SEVERITY_MAP[label]
+                print(f"  👁  Detected: {label}  {confidence:.0%}  [{severity}]", end="")
+
+                # ── Human override (Animal class only) ───────────────
                 if label == "Animal" and FILTER_HUMANS:
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     if is_human(frame, x1, y1, x2, y2):
-                        print(f"  [SKIP] Animal detection overridden — region contains a person")
+                        print("  → skipped (human)")
                         continue
 
-                # ── Cooldown check ──
-                if current_time - last_sent.get(label, 0) < FRAME_INTERVAL:
+                # ── Gate 2: must meet alert threshold to send ────────
+                if confidence < ALERT_THRESHOLD:
+                    print("  → detected, below alert threshold")
                     continue
 
+                # ── Cooldown: don't flood the backend ────────────────
+                if current_time - last_sent.get(label, 0) < FRAME_INTERVAL:
+                    print("  → cooldown active")
+                    continue
+
+                print()   # newline before the alert line
                 send_detection(label, confidence)
                 last_sent[label] = current_time
-
-        # Optional live preview — uncomment to enable
-        # annotated = results[0].plot()
-        # cv2.imshow("PoolGuard Live Detection", annotated)
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     print("Stopping detector...")
-        #     break
 
         time.sleep(0.1)
 
