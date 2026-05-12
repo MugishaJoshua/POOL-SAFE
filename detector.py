@@ -5,14 +5,12 @@ from ultralytics import YOLO
 
 # ── Config ─────────────────────────────────────────────
 MODEL_PATH     = "best.pt"
-print("Model classes:", model.names)  # ← add this
-print("Model loaded ✅")
 DJANGO_URL     = "https://pool-safe-production.up.railway.app/api/ingest/"
 FRAME_INTERVAL = 10             # seconds before re-alerting the same class
 
-# Detection threshold — lower so the model sees detections,
-# then MIN_SEND_CONFIDENCE decides whether to report them.
-CONFIDENCE     = 0.95
+# Detection threshold — YOLO pre-filters below this.
+# Keep low so MIN_SEND_CONFIDENCE does the per-class gating.
+CONFIDENCE     = 0.40
 
 # Camera source — choose one:
 # CAMERA_SOURCE = 0                                            # webcam
@@ -39,11 +37,13 @@ CLASS_MAP = {
 
 # Per-class minimum confidence before sending to backend.
 # Higher bar for Animal (human misfires) and Trash (model default bias).
+# Person is not a threat class — set to 1.0 to block it entirely.
 MIN_SEND_CONFIDENCE = {
     "Animal":  0.80,
     "Bottle":  0.60,
     "Food":    0.60,
     "Trash":   0.75,
+    "Person":  1.01,   # effectively disabled — humans are not a threat class
 }
 
 DEFAULT_SEVERITY     = "low"
@@ -146,6 +146,11 @@ try:
                 class_id   = int(box.cls[0])
                 confidence = float(box.conf[0])
                 label      = model.names[class_id]
+
+                # ── Filter 0: skip classes that aren't threat classes ──
+                if label not in CLASS_MAP:
+                    print(f"  [SKIP] {label} is not a threat class")
+                    continue
 
                 # ── Filter 1: per-class confidence gate ──
                 min_conf = MIN_SEND_CONFIDENCE.get(label, 0.60)
