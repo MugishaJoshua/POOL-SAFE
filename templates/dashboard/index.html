@@ -35,7 +35,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font);
-    font-size: 25px;
+    font-size: 14px;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -418,14 +418,43 @@
 
   .stream-input {
     background: var(--surface2); border: 1px solid var(--border2);
-    color: #fff; font-family: var(--font-mono); font-size: 12px;
+    color: var(--text); font-family: var(--font-mono); font-size: 12px;
     padding: 8px 14px; border-radius: 8px; flex: 1; outline: none;
     transition: border-color .15s;
   }
-  .stream-input:focus { border-color: rgba(255,255,255,0.3); }
+  .stream-input:focus { border-color: var(--blue-border); outline: none; }
 
-  main::-webkit-scrollbar { width: 5px; }
-  main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  /* ── SETTINGS ── */
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .setting-label { flex: 1; }
+  .setting-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .setting-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* toggle switch */
+  .toggle { position: relative; display: inline-flex; cursor: pointer; }
+  .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    width: 40px; height: 22px; background: var(--border2);
+    border-radius: 100px; transition: background .2s; flex-shrink: 0;
+  }
+  .toggle input:checked + .toggle-track { background: var(--blue); }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; background: #fff;
+    border-radius: 50%; transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked ~ .toggle-track .toggle-thumb { transform: translateX(18px); }
+
+  input[type="range"] { cursor: pointer; accent-color: var(--blue); }
+  select.stream-input { cursor: pointer; }
+
 </style>
 </head>
 <body>
@@ -442,6 +471,7 @@
     <button class="nav-link"        data-page="alerts"    onclick="showPage('alerts')">Alerts</button>
     <button class="nav-link"        data-page="history"   onclick="showPage('history')">History</button>
     <button class="nav-link"        data-page="analytics" onclick="showPage('analytics')">Analytics</button>
+    <button class="nav-link"        data-page="settings"  onclick="showPage('settings')">Settings</button>
   </nav>
 
   <div class="header-right">
@@ -492,36 +522,62 @@
   <div class="page" id="page-feed">
     <div class="page-hero">
       <h1>Live Feed</h1>
-      <p>Connect to your YOLOv8 stream server to monitor the pool area in real time.</p>
+      <p>Stream annotated video directly from your camera — choose a source mode below.</p>
     </div>
     <div class="divider"></div>
+
+    <!-- Source mode toggle -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button id="mode-builtin" class="btn-primary" onclick="setFeedMode('builtin')"
+        style="font-size:12px;padding:6px 16px;">🖥 Built-in (Django)</button>
+      <button id="mode-external" class="demo-btn" onclick="setFeedMode('external')"
+        style="font-size:12px;padding:6px 16px;">📡 External (stream_server.py)</button>
+    </div>
+
+    <!-- Built-in mode controls -->
+    <div id="feed-builtin-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+      <input id="camera-source" class="stream-input" type="text" placeholder="Camera source: 0 for webcam, or rtsp://…"
+        style="flex:1;" value="0">
+      <button class="btn-primary" onclick="connectBuiltin()">Connect</button>
+      <button class="demo-btn" onclick="disconnectStream()">Disconnect</button>
+    </div>
+
+    <!-- External mode controls -->
+    <div id="feed-external-controls" style="display:none;gap:10px;align-items:center;margin-bottom:14px;">
+      <input id="stream-ip" class="stream-input" type="text" placeholder="Stream server IP, e.g. 192.168.1.72"
+        style="flex:1;">
+      <button class="btn-primary" onclick="connectExternal()">Connect</button>
+      <button class="demo-btn" onclick="disconnectStream()">Disconnect</button>
+    </div>
+
     <div class="camera-wrap">
       <img id="live-stream" src="" style="width:100%;height:100%;object-fit:cover;display:none;" alt="Live Feed"
            onerror="this.style.display='none';document.getElementById('cam-placeholder').style.display='flex';">
       <div class="camera-placeholder" id="cam-placeholder">
         <div class="cam-icon">📡</div>
         <div style="color:rgba(255,255,255,0.45);font-size:14px;font-weight:500;">Camera Offline</div>
-        <div style="font-size:12px;">Enter your stream server IP below</div>
+        <div id="cam-placeholder-hint" style="font-size:12px;">Select a source mode above and click Connect</div>
       </div>
       <div class="camera-overlay"></div>
       <div class="cam-badge">
         <span style="width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;animation:blink 1.2s ease-in-out infinite;"></span> REC
       </div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <input id="stream-ip" class="stream-input" type="text" placeholder="e.g. 192.168.1.72">
-      <button class="btn-primary" onclick="connectStream()">Connect</button>
-      <button class="demo-btn" onclick="disconnectStream()">Disconnect</button>
-    </div>
+
     <div class="two-col">
       <div class="card">
         <div class="card-title"><span>Last Detection</span></div>
         <div id="feed-latest"><div class="empty">No detections yet</div></div>
       </div>
       <div class="card">
-        <div class="card-title"><span>Connection Status</span></div>
-        <div style="padding:20px 0;color:var(--muted);font-size:13px;line-height:1.8;">
-          Run <code style="background:var(--surface2);padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">stream_server.py</code> on your local machine, then enter the IP address above.
+        <div class="card-title"><span>Connection Guide</span></div>
+        <div id="feed-guide" style="padding:16px 0;color:var(--muted);font-size:12px;line-height:2;">
+          <strong style="color:var(--text);">Built-in mode</strong> — streams directly through Django.<br>
+          Enter <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">0</code> for webcam or a full
+          <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">rtsp://</code> URL.<br><br>
+          <strong style="color:var(--text);">External mode</strong> — run
+          <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">stream_server.py</code>
+          on your machine, then enter its IP address here.
         </div>
       </div>
     </div>
@@ -592,6 +648,131 @@
       <div id="class-breakdown" style="display:flex;flex-direction:column;gap:14px;padding:4px 0;"></div>
     </div>
   </div>
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="page-hero">
+      <h1>Settings</h1>
+      <p>Configure detection thresholds, notifications, and system behaviour.</p>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Backend -->
+    <div class="card-solo">
+      <div class="card-title"><span>Backend Connection</span></div>
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">Django API URL</div>
+            <div class="setting-desc">Base URL of the PoolGuard Django server receiving detections</div>
+          </div>
+          <input id="cfg-api-url" class="stream-input" type="text" style="width:320px;"
+            placeholder="https://pool-safe-production.up.railway.app">
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">Poll Interval</div>
+            <div class="setting-desc">How often the dashboard checks for new alerts (seconds)</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="cfg-poll-interval" class="stream-input" type="number" min="1" max="60" style="width:90px;">
+            <span style="font-size:12px;color:var(--muted);">seconds</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection thresholds -->
+    <div class="card-solo">
+      <div class="card-title"><span>Detection Confidence Thresholds</span><span style="font-size:11px;font-weight:400;color:var(--muted);">Detections below these values will be ignored</span></div>
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">🐾 Animal</div>
+            <div class="setting-desc">High bar recommended — humans can misfire this class</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="cfg-conf-animal" class="stream-input" type="range" min="0" max="100" style="width:160px;padding:0;">
+            <span id="cfg-conf-animal-val" style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);width:40px;">80%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">🗑️ Trash</div>
+            <div class="setting-desc">Slightly elevated due to model default bias</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="cfg-conf-trash" class="stream-input" type="range" min="0" max="100" style="width:160px;padding:0;">
+            <span id="cfg-conf-trash-val" style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);width:40px;">75%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">🍔 Food</div>
+            <div class="setting-desc">Standard threshold</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="cfg-conf-food" class="stream-input" type="range" min="0" max="100" style="width:160px;padding:0;">
+            <span id="cfg-conf-food-val" style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);width:40px;">60%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">🍶 Bottle</div>
+            <div class="setting-desc">Standard threshold</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="cfg-conf-bottle" class="stream-input" type="range" min="0" max="100" style="width:160px;padding:0;">
+            <span id="cfg-conf-bottle-val" style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);width:40px;">60%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card-solo">
+      <div class="card-title"><span>Notifications</span></div>
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">Sound Alerts</div>
+            <div class="setting-desc">Play an audio tone when a new detection arrives</div>
+          </div>
+          <label class="toggle">
+            <input id="cfg-sound" type="checkbox" checked>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">Toast Popups</div>
+            <div class="setting-desc">Show popup cards in the top-right corner on new alerts</div>
+          </div>
+          <label class="toggle">
+            <input id="cfg-toasts" type="checkbox" checked>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">Minimum severity for alerts</div>
+            <div class="setting-desc">Only notify for detections at or above this severity level</div>
+          </div>
+          <select id="cfg-min-severity" class="stream-input" style="width:140px;">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save -->
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="btn-primary" onclick="saveSettings()" style="padding:10px 28px;">Save Settings</button>
+      <button class="demo-btn" onclick="resetSettings()">Reset to Defaults</button>
+      <span id="settings-saved" style="font-size:12px;color:var(--green);opacity:0;transition:opacity .4s;">✓ Saved</span>
+    </div>
+  </div>
 
 </main>
 
@@ -600,15 +781,47 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 
-function connectStream() {
+
+// ── Live Feed ─────────────────────────────────────────────────────────────────
+
+let feedMode = 'builtin';
+
+function setFeedMode(mode) {
+  feedMode = mode;
+  document.getElementById('feed-builtin-controls').style.display  = mode === 'builtin'  ? 'flex' : 'none';
+  document.getElementById('feed-external-controls').style.display = mode === 'external' ? 'flex' : 'none';
+  document.getElementById('mode-builtin').className  = mode === 'builtin'  ? 'btn-primary' : 'demo-btn';
+  document.getElementById('mode-external').className = mode === 'external' ? 'btn-primary' : 'demo-btn';
+  // Update placeholder hint
+  const hint = document.getElementById('cam-placeholder-hint');
+  if (hint) hint.textContent = mode === 'builtin'
+    ? 'Enter a camera source above and click Connect'
+    : 'Enter your stream server IP above and click Connect';
+}
+
+function connectBuiltin() {
+  const source = document.getElementById('camera-source').value.trim() || '0';
+  const img = document.getElementById('live-stream');
+  img.src = `/video-feed/?source=${encodeURIComponent(source)}`;
+  img.style.display = 'block';
+  document.getElementById('cam-placeholder').style.display = 'none';
+  localStorage.setItem('feedMode', 'builtin');
+  localStorage.setItem('cameraSource', source);
+}
+
+function connectExternal() {
   const ip = document.getElementById('stream-ip').value.trim();
   if (!ip) return;
   const img = document.getElementById('live-stream');
   img.src = `http://${ip}:5000/stream`;
   img.style.display = 'block';
   document.getElementById('cam-placeholder').style.display = 'none';
+  localStorage.setItem('feedMode', 'external');
   localStorage.setItem('streamIP', ip);
 }
+
+// Keep old name as alias for disconnect buttons
+function connectStream() { connectExternal(); }
 
 function disconnectStream() {
   const img = document.getElementById('live-stream');
@@ -617,9 +830,15 @@ function disconnectStream() {
 }
 
 window.addEventListener('load', () => {
-  const s = localStorage.getItem('streamIP');
-  if (s) document.getElementById('stream-ip').value = s;
+  const savedMode = localStorage.getItem('feedMode') || 'builtin';
+  setFeedMode(savedMode);
+  const savedIP = localStorage.getItem('streamIP');
+  if (savedIP) document.getElementById('stream-ip').value = savedIP;
+  const savedSrc = localStorage.getItem('cameraSource');
+  if (savedSrc) document.getElementById('camera-source').value = savedSrc;
 });
+
+
 
 const state = { lastNotifId:0, allNotifs:[], histPage:1, trendChart:null, sevChart:null };
 const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶', littering:'🚫' };
@@ -878,8 +1097,109 @@ function getCookie(name) {
 
 loadStats();
 setInterval(loadStats,30000);
-setInterval(poll,3000);
-poll();
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+const DEFAULTS = {
+  apiUrl:       'https://pool-safe-production.up.railway.app',
+  pollInterval: 3,
+  confAnimal:   80,
+  confTrash:    75,
+  confFood:     60,
+  confBottle:   60,
+  sound:        true,
+  toasts:       true,
+  minSeverity:  'low',
+};
+
+function getSettings() {
+  return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('pgSettings') || '{}') };
+}
+
+function loadSettingsUI() {
+  const cfg = getSettings();
+  document.getElementById('cfg-api-url').value       = cfg.apiUrl;
+  document.getElementById('cfg-poll-interval').value = cfg.pollInterval;
+  document.getElementById('cfg-conf-animal').value   = cfg.confAnimal;
+  document.getElementById('cfg-conf-trash').value    = cfg.confTrash;
+  document.getElementById('cfg-conf-food').value     = cfg.confFood;
+  document.getElementById('cfg-conf-bottle').value   = cfg.confBottle;
+  document.getElementById('cfg-sound').checked       = cfg.sound;
+  document.getElementById('cfg-toasts').checked      = cfg.toasts;
+  document.getElementById('cfg-min-severity').value  = cfg.minSeverity;
+  syncSliderLabels();
+}
+
+function syncSliderLabels() {
+  ['animal','trash','food','bottle'].forEach(cls => {
+    const el = document.getElementById('cfg-conf-' + cls);
+    if (el) document.getElementById('cfg-conf-' + cls + '-val').textContent = el.value + '%';
+  });
+}
+
+function saveSettings() {
+  const cfg = {
+    apiUrl:       document.getElementById('cfg-api-url').value.trim(),
+    pollInterval: parseInt(document.getElementById('cfg-poll-interval').value) || 3,
+    confAnimal:   parseInt(document.getElementById('cfg-conf-animal').value),
+    confTrash:    parseInt(document.getElementById('cfg-conf-trash').value),
+    confFood:     parseInt(document.getElementById('cfg-conf-food').value),
+    confBottle:   parseInt(document.getElementById('cfg-conf-bottle').value),
+    sound:        document.getElementById('cfg-sound').checked,
+    toasts:       document.getElementById('cfg-toasts').checked,
+    minSeverity:  document.getElementById('cfg-min-severity').value,
+  };
+  localStorage.setItem('pgSettings', JSON.stringify(cfg));
+  applyRuntimeSettings(cfg);
+  const saved = document.getElementById('settings-saved');
+  saved.style.opacity = '1';
+  setTimeout(() => saved.style.opacity = '0', 2200);
+}
+
+function resetSettings() {
+  localStorage.removeItem('pgSettings');
+  loadSettingsUI();
+  applyRuntimeSettings(DEFAULTS);
+}
+
+let _pollTimer = null;
+
+function applyRuntimeSettings(cfg) {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollTimer = setInterval(poll, (cfg.pollInterval || 3) * 1000);
+}
+
+// Wrap showToast to honour sound / toasts / minSeverity
+const _baseShowToast = showToast;
+showToast = function(n) {
+  const cfg = getSettings();
+  const rank = { low: 0, medium: 1, high: 2 };
+  if ((rank[n.severity] || 0) < (rank[cfg.minSeverity] || 0)) return;
+  if (cfg.toasts) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = 'toast ' + n.severity;
+    t.innerHTML = '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>' +
+      '<div class="toast-title">' + (CLASS_ICONS[n.object_class]||'⚠️') + ' ' + n.object_class + ' detected</div>' +
+      '<div class="toast-body">' + n.message + '</div>' +
+      '<div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;opacity:.7;">' +
+      n.confidence + '% · ' + n.location + ' · ' + n.timestamp + '</div>';
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 7000);
+  }
+  if (cfg.sound) playAlert(n.severity);
+};
+
+window.addEventListener('load', () => {
+  loadSettingsUI();
+  ['animal','trash','food','bottle'].forEach(cls => {
+    const el = document.getElementById('cfg-conf-' + cls);
+    if (el) el.addEventListener('input', syncSliderLabels);
+  });
+  const cfg = getSettings();
+  applyRuntimeSettings(cfg);
+  poll();
+});
 </script>
 </body>
 </html>

@@ -5,7 +5,7 @@ from ultralytics import YOLO
 
 # ── Config ─────────────────────────────────────────────
 MODEL_PATH     = "best.pt"
-print("Model classes:", YOLO.names)  # ← add this
+print("Model classes:", model.names)  # ← add this
 print("Model loaded ✅")
 DJANGO_URL     = "https://pool-safe-production.up.railway.app/api/ingest/"
 FRAME_INTERVAL = 10             # seconds before re-alerting the same class
@@ -58,7 +58,7 @@ FILTER_HUMANS = True
 human_model = None
 if FILTER_HUMANS:
     try:
-        human_model = YOLO("YOLOv8n.pt")   # downloads automatically (~6 MB)
+        human_model = YOLO("yolov8n.pt")   # downloads automatically (~6 MB)
         print("Human filter loaded ✅")
     except Exception as e:
         print(f"⚠️  Human filter unavailable ({e}) — continuing without it")

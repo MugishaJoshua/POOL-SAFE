@@ -3,9 +3,11 @@ import os
 import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'django-insecure-pool-guardian-dev-key-change-in-production'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+
+# Env vars take priority; safe fallback for local dev only
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-pool-guardian-dev-key-change-in-production')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -64,11 +66,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Required for POST requests to work on Railway (and any non-localhost domain)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://pool-safe-production.up.railway.app').split(',')
+    if origin.strip()
+]
+
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ]
 }
-
-SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'

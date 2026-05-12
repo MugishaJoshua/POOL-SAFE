@@ -1,40 +1,26 @@
-
-import numpy as np
-from django.http import StreamingHttpResponse
-from ultralytics import YOLO
-import threading
-
-
-_model = None
-_model_lock = threading.Lock()
-
-
-def get_model():
-    global _model
-    with _model_lock:
-        if _model is None:
-            import os
-            model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'best.pt')
-            _model = YOLO(model_path)
-    return _model
-
-
 import json
+import threading
+import time
+from datetime import timedelta
+
+from django.db.models import Count
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.utils import timezone
-from django.db.models import Count
-from datetime import timedelta
+
 from .models import DetectionEvent, Notification
 
+# ── Constants ────────────────────────────────────────────────────────────────
+
+# Keys must match model.names values (Title-case from YOLOv8 training)
 SEVERITY_MAP = {
-    'Animal': 'high',
+    'Animal':    'high',
     'Littering': 'high',
-    'Trash': 'medium',
-    'Food': 'medium',
-    'Bottle': 'low',
+    'Trash':     'medium',
+    'Food':      'medium',
+    'Bottle':    'low',
 }
 
 CLASS_MESSAGES = {
@@ -45,6 +31,27 @@ CLASS_MESSAGES = {
     'littering': 'Littering behaviors observed. Approach visitor and request compliance.',
 }
 
+# ── Lazy YOLO loader (only used by /video-feed/) ─────────────────────────────
+
+_model = None
+_model_lock = threading.Lock()
+
+
+def get_model():
+    global _model
+    with _model_lock:
+        if _model is None:
+            import os
+            from ultralytics import YOLO
+            model_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                'best.pt'
+            )
+            _model = YOLO(model_path)
+    return _model
+
+
+# ── Views ────────────────────────────────────────────────────────────────────
 
 def dashboard(request):
     return render(request, 'dashboard/index.html')
@@ -63,10 +70,12 @@ def ingest_detection(request):
     if obj_class not in valid_classes:
         return JsonResponse({'error': f'Unknown object_class: {obj_class}'}, status=400)
 
-    confidence = float(data.get('confidence', 0.0))
-    image_path = data.get('image_path', '')
+    confidence    = float(data.get('confidence', 0.0))
+    image_path    = data.get('image_path', '')
     location_note = data.get('location_note', 'Pool Perimeter')
-    severity = SEVERITY_MAP.get(obj_class, 'medium')
+
+    # SEVERITY_MAP uses Title-case keys; obj_class is lowercase here
+    severity = SEVERITY_MAP.get(obj_class.title(), 'medium')
 
     event = DetectionEvent.objects.create(
         object_class=obj_class,
@@ -85,18 +94,22 @@ def ingest_detection(request):
 @require_http_methods(["GET"])
 def poll_notifications(request):
     since_id = int(request.GET.get('since_id', 0))
-    notifications = Notification.objects.filter(id__gt=since_id, read=False).select_related('event')
+    notifications = (
+        Notification.objects
+        .filter(id__gt=since_id, read=False)
+        .select_related('event')
+    )
     data = [
         {
-            'id': n.id,
-            'event_id': n.event.id,
+            'id':           n.id,
+            'event_id':     n.event.id,
             'object_class': n.event.object_class,
-            'confidence': round(n.event.confidence * 100, 1),
-            'severity': n.event.severity,
-            'location': n.event.location_note,
-            'message': n.message,
-            'timestamp': n.event.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'image_path': n.event.image_path,
+            'confidence':   round(n.event.confidence * 100, 1),
+            'severity':     n.event.severity,
+            'location':     n.event.location_note,
+            'message':      n.message,
+            'timestamp':    n.event.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'image_path':   n.event.image_path,
         }
         for n in notifications
     ]
@@ -120,21 +133,21 @@ def acknowledge_event(request, event_id):
 
 @require_http_methods(["GET"])
 def history(request):
-    page = int(request.GET.get('page', 1))
+    page     = int(request.GET.get('page', 1))
     per_page = 20
-    offset = (page - 1) * per_page
-    events = DetectionEvent.objects.all()[offset:offset + per_page]
-    total = DetectionEvent.objects.count()
+    offset   = (page - 1) * per_page
+    events   = DetectionEvent.objects.all()[offset:offset + per_page]
+    total    = DetectionEvent.objects.count()
     data = [
         {
-            'id': e.id,
+            'id':           e.id,
             'object_class': e.object_class,
-            'confidence': round(e.confidence * 100, 1),
-            'severity': e.severity,
-            'location': e.location_note,
-            'timestamp': e.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'confidence':   round(e.confidence * 100, 1),
+            'severity':     e.severity,
+            'location':     e.location_note,
+            'timestamp':    e.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
             'acknowledged': e.acknowledged,
-            'image_path': e.image_path,
+            'image_path':   e.image_path,
         }
         for e in events
     ]
@@ -143,35 +156,50 @@ def history(request):
 
 @require_http_methods(["GET"])
 def stats(request):
-    now = timezone.now()
+    now      = timezone.now()
     last_24h = now - timedelta(hours=24)
 
     by_class = list(
-        DetectionEvent.objects.values('object_class').annotate(count=Count('id')).order_by('-count')
+        DetectionEvent.objects
+        .values('object_class')
+        .annotate(count=Count('id'))
+        .order_by('-count')
     )
     by_severity = list(
         DetectionEvent.objects.values('severity').annotate(count=Count('id'))
     )
-    daily = []
-    for i in range(7):
-        day = (now - timedelta(days=6 - i)).date()
-        count = DetectionEvent.objects.filter(timestamp__date=day).count()
-        daily.append({'date': str(day), 'count': count})
+    daily = [
+        {
+            'date':  str((now - timedelta(days=6 - i)).date()),
+            'count': DetectionEvent.objects.filter(
+                timestamp__date=(now - timedelta(days=6 - i)).date()
+            ).count(),
+        }
+        for i in range(7)
+    ]
 
     return JsonResponse({
-        'by_class': by_class,
-        'by_severity': by_severity,
-        'daily': daily,
+        'by_class':             by_class,
+        'by_severity':          by_severity,
+        'daily':                daily,
         'unread_notifications': Notification.objects.filter(read=False).count(),
-        'total_today': DetectionEvent.objects.filter(timestamp__date=now.date()).count(),
-        'total_24h': DetectionEvent.objects.filter(timestamp__gte=last_24h).count(),
-        'total_all': DetectionEvent.objects.count(),
+        'total_today':          DetectionEvent.objects.filter(timestamp__date=now.date()).count(),
+        'total_24h':            DetectionEvent.objects.filter(timestamp__gte=last_24h).count(),
+        'total_all':            DetectionEvent.objects.count(),
     })
+
+
+# ── Live video feed ───────────────────────────────────────────────────────────
+
+# Cooldown: don't save the same class more than once every N seconds per feed
+_feed_last_sent = {}
+_FEED_COOLDOWN  = 10  # seconds
+
 
 def generate_frames(source=0):
     import cv2
     model = get_model()
-    cap = cv2.VideoCapture(source)
+    cap   = cv2.VideoCapture(source)
 
     if not cap.isOpened():
         return
@@ -182,31 +210,36 @@ def generate_frames(source=0):
             if not ret:
                 break
 
-            # Run YOLOv8 on frame
-            results = model(frame, conf=0.95, verbose=False)
+            results   = model(frame, conf=0.45, verbose=False)
             annotated = results[0].plot()
 
-            # Auto-ingest detections
+            now = time.time()
             for result in results:
                 for box in result.boxes:
                     class_id   = int(box.cls[0])
                     confidence = float(box.conf[0])
-                    label      = model.names[class_id]
-                    severity   = SEVERITY_MAP.get(label, 'low')
-                    message    = CLASS_MESSAGES.get(label.lower(), f'{label} detected at pool.')
+                    label      = model.names[class_id]   # Title-case e.g. "Animal"
+                    label_lc   = label.lower()
+
+                    # Cooldown — skip if this class was recently saved
+                    last = _feed_last_sent.get(label, 0)
+                    if now - last < _FEED_COOLDOWN:
+                        continue
+                    _feed_last_sent[label] = now
+
+                    severity = SEVERITY_MAP.get(label, 'low')
+                    message  = CLASS_MESSAGES.get(label_lc, f'{label} detected at pool.')
 
                     event = DetectionEvent.objects.create(
-                         object_class=label.lower(),
-                         confidence=confidence,
-                         severity=severity,
-                         location_note='Live Camera',
-                                )
+                        object_class=label_lc,
+                        confidence=confidence,
+                        severity=severity,
+                        location_note='Live Camera',
+                    )
                     Notification.objects.create(event=event, message=message)
 
-            # Encode frame as JPEG
-            _, buffer = cv2.imencode('.jpg', annotated)
+            _, buffer   = cv2.imencode('.jpg', annotated)
             frame_bytes = buffer.tobytes()
-
             yield (
                 b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n'
@@ -218,7 +251,6 @@ def generate_frames(source=0):
 @require_http_methods(["GET"])
 def video_feed(request):
     source = request.GET.get('source', '0')
-    # Convert to int if webcam index
     try:
         source = int(source)
     except ValueError:
