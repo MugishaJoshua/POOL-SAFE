@@ -284,6 +284,35 @@
   }
   .btn-primary:hover { opacity: 0.85; }
 
+  /* ── PDF / Download buttons ── */
+  .btn-report {
+    background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    color: #fff; border: none;
+    padding: 9px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: opacity .2s, transform .1s; font-family: var(--font);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-report:hover  { opacity: .88; transform: translateY(-1px); }
+  .btn-report:active { transform: translateY(0); }
+
+  .btn-dl-event {
+    background: transparent;
+    color: var(--blue); border: 1px solid var(--blue-border);
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; cursor: pointer; font-family: var(--font);
+    transition: background .2s, color .2s;
+  }
+  .btn-dl-event:hover { background: var(--blue); color: #fff; }
+
+  .thumb-row { display: flex; gap: 8px; margin-top: 6px; }
+  .thumb-row img {
+    width: 80px; height: 55px; object-fit: cover;
+    border-radius: 4px; border: 1px solid var(--border);
+    cursor: pointer; transition: opacity .15s;
+  }
+  .thumb-row img:hover { opacity: .75; }
+
   /* ── TABLE ── */
   .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .data-table th {
@@ -446,6 +475,13 @@
       <button class="demo-btn" onclick="simulate('bottle')">Bottle</button>
       <button class="demo-btn" onclick="simulate('littering')">Littering</button>
     </div>
+
+    <!-- ── Full report download ── -->
+    <div style="margin-top:14px;">
+      <button class="btn-report" id="btn-full-report" onclick="downloadFullReport()">
+        📄 Download Full Report PDF
+      </button>
+    </div>
   </div>
 
   <!-- LIVE FEED -->
@@ -534,7 +570,7 @@
       <div style="overflow-x:auto;">
         <table class="data-table">
           <thead>
-            <tr><th>#</th><th>Class</th><th>Confidence</th><th>Severity</th><th>Location</th><th>Timestamp</th><th>Status</th><th></th></tr>
+            <tr><th>#</th><th>Class</th><th>Confidence</th><th>Severity</th><th>Location</th><th>Timestamp</th><th>Status</th><th></th><th>PDF</th></tr>
           </thead>
           <tbody id="history-tbody">
             <tr><td colspan="8" class="empty">Loading…</td></tr>
@@ -963,18 +999,32 @@ function loadHistory(page) {
   fetch(`/api/history/?page=${page}`).then(r => r.json()).then(d => {
     document.getElementById('history-count').textContent = `${d.total} events`;
     const tbody = document.getElementById('history-tbody');
-    if (!d.events.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No events</td></tr>'; return; }
-    tbody.innerHTML = d.events.map(e => `
+    if (!d.events.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No events</td></tr>'; return; }
+    tbody.innerHTML = d.events.map(e => {
+      // Build thumbnail row if images exist
+      let thumbs = '';
+      if (e.full_frame_url || e.cropped_object_url) {
+        thumbs = '<div class="thumb-row">';
+        if (e.full_frame_url)     thumbs += `<img src="${e.full_frame_url}"     title="Full frame"     onclick="window.open('${e.full_frame_url}','_blank')">`;
+        if (e.cropped_object_url) thumbs += `<img src="${e.cropped_object_url}" title="Cropped object" onclick="window.open('${e.cropped_object_url}','_blank')">`;
+        thumbs += '</div>';
+      }
+      return `
       <tr class="${e.acknowledged ? 'acked' : ''}">
         <td style="color:var(--muted);">#${e.id}</td>
-        <td><span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span></td>
+        <td>
+          <span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span>
+          ${thumbs}
+        </td>
         <td>${e.confidence}%</td>
         <td><span class="badge ${e.severity}">${e.severity}</span></td>
         <td>${e.location}</td>
         <td style="color:var(--muted);">${e.timestamp}</td>
         <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Cleared' : '● Active'}</td>
         <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Clear</button>` : ''}</td>
-      </tr>`).join('');
+        <td><button class="btn-dl-event" onclick="downloadEventPDF(${e.id})">📥 PDF</button></td>
+      </tr>`;
+    }).join('');
     const pages = Math.ceil(d.total / d.per_page);
     document.getElementById('history-pagination').innerHTML = Array.from({length:pages}, (_,i) =>
       `<button class="page-btn ${i+1 === page ? 'active' : ''}" onclick="loadHistory(${i+1})">${i+1}</button>`
@@ -985,6 +1035,25 @@ function loadHistory(page) {
 function ackFromHistory(eventId) {
   fetch(`/api/events/${eventId}/acknowledge/`, { method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')} })
     .then(() => loadHistory());
+}
+
+// ── PDF downloads ─────────────────────────────────────────────────────────────
+function downloadFullReport() {
+  const btn = document.getElementById('btn-full-report');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Generating…'; btn.disabled = true;
+  const a = document.createElement('a');
+  a.href = '/api/report/full/pdf/';
+  a.download = 'poolguard_full_report.pdf';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 3000);
+}
+
+function downloadEventPDF(eventId) {
+  const a = document.createElement('a');
+  a.href = `/api/report/event/${eventId}/pdf/`;
+  a.download = `poolguard_event_${eventId}.pdf`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

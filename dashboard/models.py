@@ -19,10 +19,23 @@ class DetectionEvent(models.Model):
     object_class = models.CharField(max_length=20, choices=THREAT_CLASSES)
     confidence = models.FloatField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    image_path = models.CharField(max_length=500, blank=True)
+    image_path = models.CharField(max_length=500, blank=True)  # kept for backward compat
     severity = models.CharField(max_length=10, choices=SEVERITY, default='medium')
     location_note = models.CharField(max_length=200, blank=True, default='Pool Perimeter')
     acknowledged = models.BooleanField(default=False)
+
+    # ── New image fields ──────────────────────────────────────────────────────
+    full_frame = models.ImageField(
+        upload_to='detections/full_frames/',
+        null=True, blank=True,
+        help_text='Full camera frame at the moment of detection'
+    )
+    cropped_object = models.ImageField(
+        upload_to='detections/cropped/',
+        null=True, blank=True,
+        help_text='Tight crop around the detected object'
+    )
+    # ─────────────────────────────────────────────────────────────────────────
 
     class Meta:
         ordering = ['-timestamp']
