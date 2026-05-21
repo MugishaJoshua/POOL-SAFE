@@ -568,12 +568,46 @@ def generate_frames(source=0):
                     severity = SEVERITY_MAP.get(label, 'low')
                     message  = CLASS_MESSAGES.get(label_lc, f'{label} detected at pool.')
 
-                    event = DetectionEvent.objects.create(
+                    event = DetectionEvent(
                         object_class=label_lc,
                         confidence=confidence,
                         severity=severity,
                         location_note='Live Camera',
                     )
+
+                    # ── Save full annotated frame ─────────────────────────
+                    try:
+                        _, full_buf = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                        event.full_frame.save(
+                            f'full_{timezone.now().strftime("%Y%m%d_%H%M%S%f")}.jpg',
+                            ContentFile(full_buf.tobytes()),
+                            save=False,
+                        )
+                    except Exception:
+                        pass
+
+                    # ── Save cropped detection ────────────────────────────
+                    try:
+                        x1, y1, x2, y2 = map(int, box.xyxy[0])
+                        # add 10px padding, clamp to frame bounds
+                        pad = 10
+                        h, w = frame.shape[:2]
+                        x1c = max(0, x1 - pad)
+                        y1c = max(0, y1 - pad)
+                        x2c = min(w, x2 + pad)
+                        y2c = min(h, y2 + pad)
+                        crop = frame[y1c:y2c, x1c:x2c]
+                        if crop.size > 0:
+                            _, crop_buf = cv2.imencode('.jpg', crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                            event.cropped_object.save(
+                                f'crop_{timezone.now().strftime("%Y%m%d_%H%M%S%f")}.jpg',
+                                ContentFile(crop_buf.tobytes()),
+                                save=False,
+                            )
+                    except Exception:
+                        pass
+
+                    event.save()
                     Notification.objects.create(event=event, message=message)
 
             _, buffer_   = cv2.imencode('.jpg', annotated)
