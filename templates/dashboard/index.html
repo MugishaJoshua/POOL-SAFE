@@ -545,10 +545,27 @@
     </div>
     <div class="divider"></div>
     <div class="card-solo">
-      <div class="card-title">
-        <span>Active Alerts</span>
-        <button class="demo-btn" onclick="clearAllAlerts()" style="padding:4px 12px;font-size:11px;">Clear all</button>
-      </div>
+  <div class="card-title">
+    <span>Active Alerts</span>
+    <button class="demo-btn" onclick="clearAllAlerts()" style="padding:4px 12px;font-size:11px;">Clear all</button>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border);">
+    <select id="alert-filter-severity" class="stream-input" style="width:140px;" onchange="refreshOverviewNotifs()">
+      <option value="">All Severities</option>
+      <option value="high">🔴 High</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="low">🟢 Low</option>
+    </select>
+    <select id="alert-filter-class" class="stream-input" style="width:140px;" onchange="refreshOverviewNotifs()">
+      <option value="">All Classes</option>
+      <option value="animal">🐾 Animal</option>
+      <option value="trash">🗑️ Trash</option>
+      <option value="food">🍔 Food</option>
+      <option value="bottle">🍶 Bottle</option>
+      <option value="littering">🚫 Littering</option>
+    </select>
+    <button class="demo-btn" onclick="clearAlertFilters()">✕ Clear</button>
+  </div>
       <div class="notify-list" id="alerts-list" style="max-height:600px;">
         <div class="empty">No active alerts</div>
       </div>
@@ -563,10 +580,34 @@
     </div>
     <div class="divider"></div>
     <div class="card-solo">
-      <div class="card-title">
-        <span>All Events</span>
-        <span id="history-count" style="font-size:11px;color:var(--muted);"></span>
-      </div>
+  <div class="card-title">
+    <span>All Events</span>
+    <span id="history-count" style="font-size:11px;color:var(--muted);"></span>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border);">
+    <select id="filter-class" class="stream-input" style="width:130px;" onchange="loadHistory(1)">
+      <option value="">All Classes</option>
+      <option value="animal">🐾 Animal</option>
+      <option value="trash">🗑️ Trash</option>
+      <option value="food">🍔 Food</option>
+      <option value="bottle">🍶 Bottle</option>
+      <option value="littering">🚫 Littering</option>
+    </select>
+    <select id="filter-severity" class="stream-input" style="width:130px;" onchange="loadHistory(1)">
+      <option value="">All Severities</option>
+      <option value="high">🔴 High</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="low">🟢 Low</option>
+    </select>
+    <select id="filter-status" class="stream-input" style="width:130px;" onchange="loadHistory(1)">
+      <option value="">All Statuses</option>
+      <option value="active">● Active</option>
+      <option value="cleared">✓ Cleared</option>
+    </select>
+    <input id="filter-date-from" class="stream-input" type="date" style="width:150px;" onchange="loadHistory(1)">
+    <input id="filter-date-to" class="stream-input" type="date" style="width:150px;" onchange="loadHistory(1)">
+    <button class="demo-btn" onclick="clearHistoryFilters()">✕ Clear</button>
+  </div>
       <div style="overflow-x:auto;">
         <table class="data-table">
           <thead>
@@ -882,7 +923,22 @@ function clearAllAlerts() {
   updateUnreadBadge(); refreshOverviewNotifs();
 }
 
+function clearAlertFilters() {
+  document.getElementById('alert-filter-severity').value = '';
+  document.getElementById('alert-filter-class').value    = '';
+  refreshOverviewNotifs();
+}
+
 function refreshOverviewNotifs() {
+  const sevFilter = document.getElementById('alert-filter-severity')?.value || '';
+  const clsFilter = document.getElementById('alert-filter-class')?.value    || '';
+
+  const filtered = state.allNotifs.filter(n => {
+    if (sevFilter && n.severity     !== sevFilter) return false;
+    if (clsFilter && n.object_class !== clsFilter) return false;
+    return true;
+  });
+
   const el = document.getElementById('overview-notifs');
   const al = document.getElementById('alerts-list');
   if (!state.allNotifs.length) {
@@ -891,7 +947,9 @@ function refreshOverviewNotifs() {
     return;
   }
   el.innerHTML = state.allNotifs.slice(0, 5).map(buildNotifItem).join('');
-  al.innerHTML = state.allNotifs.map(buildNotifItem).join('');
+  al.innerHTML = filtered.length
+    ? filtered.map(buildNotifItem).join('')
+    : '<div class="empty">No alerts match filters</div>';
   document.getElementById('recent-ts').textContent = state.allNotifs[0]?.timestamp || '';
 }
 
@@ -973,28 +1031,48 @@ function updateFeedLatest() {
 }
 
 // ── History ───────────────────────────────────────────────────────────────────
+// ── History ───────────────────────────────────────────────────────────────────
+function clearHistoryFilters() {
+  document.getElementById('filter-class').value     = '';
+  document.getElementById('filter-severity').value  = '';
+  document.getElementById('filter-status').value    = '';
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value   = '';
+  loadHistory(1);
+}
+
 function loadHistory(page) {
   page = page || state.histPage; state.histPage = page;
-  fetch(`/api/history/?page=${page}`).then(r => r.json()).then(d => {
+
+  const cls      = document.getElementById('filter-class')?.value     || '';
+  const severity = document.getElementById('filter-severity')?.value  || '';
+  const status   = document.getElementById('filter-status')?.value    || '';
+  const dateFrom = document.getElementById('filter-date-from')?.value || '';
+  const dateTo   = document.getElementById('filter-date-to')?.value   || '';
+
+  const params = new URLSearchParams({ page });
+  if (cls)      params.append('object_class', cls);
+  if (severity) params.append('severity', severity);
+  if (status)   params.append('status', status);
+  if (dateFrom) params.append('date_from', dateFrom);
+  if (dateTo)   params.append('date_to', dateTo);
+
+  fetch(`/api/history/?${params}`).then(r => r.json()).then(d => {
     document.getElementById('history-count').textContent = `${d.total} events`;
     const tbody = document.getElementById('history-tbody');
-    if (!d.events.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No events</td></tr>'; return; }
+    if (!d.events.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No events match filters</td></tr>'; return; }
     tbody.innerHTML = d.events.map(e => {
-      // Build thumbnail row if images exist
       let thumbs = '';
       if (e.full_frame_url || e.cropped_object_url) {
         thumbs = '<div class="thumb-row">';
-        if (e.full_frame_url)     thumbs += `<img src="${e.full_frame_url}"     title="Full frame"     onclick="window.open('${e.full_frame_url}','_blank')">`;
+        if (e.full_frame_url)     thumbs += `<img src="${e.full_frame_url}" title="Full frame" onclick="window.open('${e.full_frame_url}','_blank')">`;
         if (e.cropped_object_url) thumbs += `<img src="${e.cropped_object_url}" title="Cropped object" onclick="window.open('${e.cropped_object_url}','_blank')">`;
         thumbs += '</div>';
       }
       return `
       <tr class="${e.acknowledged ? 'acked' : ''}">
         <td style="color:var(--muted);">#${e.id}</td>
-        <td>
-          <span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span>
-          ${thumbs}
-        </td>
+        <td><span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span>${thumbs}</td>
         <td>${e.confidence}%</td>
         <td><span class="badge ${e.severity}">${e.severity}</span></td>
         <td>${e.location}</td>

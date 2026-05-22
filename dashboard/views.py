@@ -197,8 +197,25 @@ def history(request):
     page     = int(request.GET.get('page', 1))
     per_page = 20
     offset   = (page - 1) * per_page
-    events   = DetectionEvent.objects.all()[offset:offset + per_page]
-    total    = DetectionEvent.objects.count()
+
+    qs = DetectionEvent.objects.all()
+
+    obj_class = request.GET.get('object_class')
+    severity  = request.GET.get('severity')
+    status    = request.GET.get('status')
+    date_from = request.GET.get('date_from')
+    date_to   = request.GET.get('date_to')
+
+    if obj_class: qs = qs.filter(object_class=obj_class)
+    if severity:  qs = qs.filter(severity=severity)
+    if status == 'active':  qs = qs.filter(acknowledged=False)
+    if status == 'cleared': qs = qs.filter(acknowledged=True)
+    if date_from: qs = qs.filter(timestamp__date__gte=date_from)
+    if date_to:   qs = qs.filter(timestamp__date__lte=date_to)
+
+    total  = qs.count()
+    events = qs[offset:offset + per_page]
+
     data = [
         {
             'id':           e.id,
@@ -215,7 +232,6 @@ def history(request):
         for e in events
     ]
     return JsonResponse({'events': data, 'total': total, 'page': page, 'per_page': per_page})
-
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
