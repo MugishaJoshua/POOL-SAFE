@@ -847,31 +847,10 @@ function playAlert(severity) {
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function showToast(n) {
   const cfg = getSettings();
-
-  // Severity gate
   const rank = { low:0, medium:1, high:2 };
   if ((rank[n.severity] || 0) < (rank[cfg.minSeverity] || 0)) return;
-
-  // Toast popup
-  if (cfg.toasts) {
-    const c = document.getElementById('toast-container');
-    const t = document.createElement('div');
-    t.className = 'toast ' + n.severity;
-    t.innerHTML =
-      '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>' +
-      '<div class="toast-title">' + (CLASS_ICONS[n.object_class] || '⚠️') + ' ' + n.object_class + ' detected</div>' +
-      '<div class="toast-body">' + n.message + '</div>' +
-      '<div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;opacity:.7;">' +
-        n.confidence + '% · ' + n.location + ' · ' + n.timestamp +
-      '</div>';
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 7000);
-  }
-
-  // Sound (checked inside playAlert too, but explicit here for clarity)
   if (cfg.sound) playAlert(n.severity);
 }
-
 // ── Notifications ─────────────────────────────────────────────────────────────
 function buildNotifItem(n) {
   return `
