@@ -582,7 +582,10 @@
     <div class="card-solo">
   <div class="card-title">
     <span>All Events</span>
-    <span id="history-count" style="font-size:11px;color:var(--muted);"></span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="history-count" style="font-size:11px;color:var(--muted);"></span>
+      <button class="btn-report" onclick="downloadFullReport()">📄 Download Full Report PDF</button>
+    </div>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border);">
     <select id="filter-class" class="stream-input" style="width:130px;" onchange="loadHistory(1)">
