@@ -462,7 +462,6 @@
     </div>
     <div class="divider"></div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button id="mode-builtin" class="btn-primary" onclick="setFeedMode('builtin')" style="font-size:12px;padding:6px 16px;">🖥 Built-in (Django)</button>
       <button id="mode-external" class="demo-btn" onclick="setFeedMode('external')" style="font-size:12px;padding:6px 16px;">📡 External (stream_server.py)</button>
     </div>
     <div id="feed-builtin-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
@@ -496,7 +495,6 @@
       <div class="card">
         <div class="card-title"><span>Connection Guide</span></div>
         <div style="padding:16px 0;color:var(--muted);font-size:12px;line-height:2;">
-          <strong style="color:var(--text);">Built-in mode</strong> — streams directly through Django.<br>
           Enter <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">0</code> for webcam or a full
           <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);">rtsp://</code> URL.<br><br>
           <strong style="color:var(--text);">External mode</strong> — run
