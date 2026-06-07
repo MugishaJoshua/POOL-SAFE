@@ -1,1 +1,1 @@
-web: gunicorn pool_guardian.wsgi:application
+web: gunicorn core.wsgi:application
