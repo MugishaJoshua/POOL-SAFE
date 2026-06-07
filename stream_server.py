@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 MODEL_PATH     = "best.pt"
-DJANGO_URL     = "https://pool-safe-production.up.railway.app/api/ingest/"
+DJANGO_URL = "https://pool-guard.onrender.com/api/ingest/"
 CONFIDENCE     = 0.40          # YOLO pre-filter — kept low, gated below
 FRAME_INTERVAL = 2             # seconds between alerts for the same class
 
