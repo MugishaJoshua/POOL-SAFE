@@ -89,3 +89,5 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 DIGEST_RECIPIENT_EMAIL = 'mugishajoshua567@gmail.com'
 
+TIME_ZONE = 'Africa/Kigali'
+USE_TZ = True
