@@ -644,7 +644,7 @@
             <div class="setting-desc">Base URL of the PoolGuard Django server receiving detections</div>
           </div>
           <input id="cfg-api-url" class="stream-input" type="text" style="width:320px;"
-            placeholder="https://pool-safe-production.up.railway.app">
+            placeholder="https://pool-guard.onrender.com">
         </div>
         <div class="setting-row">
           <div class="setting-label">
@@ -732,8 +732,16 @@
 const state = { lastNotifId:0, allNotifs:[], histPage:1, trendChart:null, sevChart:null };
 const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶', littering:'🚫' };
 
+const CLASS_MESSAGES = {
+  trash:     'Trash detected near the pool. Please remove immediately.',
+  food:      'Food remains spotted at pool perimeter. Collect before attracting pests.',
+  animal:    'Animal intrusion detected! Escort animal away from pool area.',
+  bottle:    'Plastic bottle found near pool edge. Remove to prevent water contamination.',
+  littering: 'Littering behaviors observed. Approach visitor and request compliance.',
+};
+
 const DEFAULTS = {
-  apiUrl:'https://pool-safe-production.up.railway.app',
+  apiUrl:'https://pool-guard.onrender.com',
   pollInterval:3, confAnimal:80, confTrash:75, confFood:60, confBottle:60,
   sound:true, toasts:true, minSeverity:'low', darkMode:false,
 };
@@ -795,7 +803,7 @@ function playAlert(severity) {
   } catch(e) {}
 }
 
-// ── Toast (sound only, no popup) ──
+// ── Toast ──
 function showToast(n) {
   const cfg = getSettings();
   const rank = { low:0, medium:1, high:2 };
@@ -810,7 +818,7 @@ function buildNotifItem(n) {
       <div class="notify-icon">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
       <div class="notify-body">
         <div class="notify-title">${n.object_class} <span class="badge ${n.severity}">${n.severity}</span></div>
-        <div class="notify-msg">${n.message}</div>
+        <div class="notify-msg">${n.message || CLASS_MESSAGES[n.object_class] || n.object_class + ' detected at pool.'}</div>
         <div class="notify-meta"><span>${n.timestamp}</span><span>${n.location}</span><span>${n.confidence}% conf</span></div>
       </div>
       <button class="ack-btn" onclick="acknowledge(${n.event_id},${n.id})">Clear</button>
@@ -870,7 +878,34 @@ function updateUnreadBadge() {
   if (el) el.textContent = count;
 }
 
-// ── Poll ──
+// ── Load initial alerts from DB on boot ──
+function loadInitialAlerts() {
+  fetch('/api/history/?status=active&per_page=50&page=1')
+    .then(r => r.json())
+    .then(d => {
+      if (!d.events) return;
+      d.events.forEach(e => {
+        if (!state.allNotifs.find(x => x.event_id === e.id)) {
+          state.allNotifs.push({
+            id:           e.id,
+            event_id:     e.id,
+            object_class: e.object_class,
+            confidence:   e.confidence,
+            severity:     e.severity,
+            location:     e.location,
+            message:      CLASS_MESSAGES[e.object_class] || e.object_class + ' detected at pool.',
+            timestamp:    e.timestamp,
+          });
+          state.lastNotifId = Math.max(state.lastNotifId, e.id);
+        }
+      });
+      updateUnreadBadge();
+      refreshOverviewNotifs();
+      updateFeedLatest();
+    }).catch(() => {});
+}
+
+// ── Poll for NEW notifications since last seen ──
 let _pollTimer = null;
 function poll() {
   fetch(`/api/notifications/poll/?since_id=${state.lastNotifId}`)
@@ -994,7 +1029,11 @@ function loadHistory(page) {
 
 function ackFromHistory(eventId) {
   fetch(`/api/events/${eventId}/acknowledge/`, { method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')} })
-    .then(() => loadHistory());
+    .then(() => {
+      state.allNotifs = state.allNotifs.filter(n => n.event_id !== eventId);
+      updateUnreadBadge(); refreshOverviewNotifs();
+      loadHistory();
+    });
 }
 
 // ── PDF downloads ──
@@ -1156,7 +1195,7 @@ function simulate(objClass) {
     method:'POST',
     headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
     body: JSON.stringify({ object_class:objClass, confidence:parseFloat(confidence), location_note:'Pool Deck - Zone A' })
-  }).then(() => loadStats());
+  }).then(() => { loadStats(); loadInitialAlerts(); });
 }
 
 function getCookie(name) {
@@ -1170,8 +1209,6 @@ function setFeedMode(mode) {
   feedMode = mode;
   document.getElementById('feed-builtin-controls').style.display  = mode === 'builtin'  ? 'flex' : 'none';
   document.getElementById('feed-external-controls').style.display = mode === 'external' ? 'flex' : 'none';
-  document.getElementById('mode-builtin').className  = mode === 'builtin'  ? 'btn-primary' : 'demo-btn';
-  document.getElementById('mode-external').className = mode === 'external' ? 'btn-primary' : 'demo-btn';
   const hint = document.getElementById('cam-placeholder-hint');
   if (hint) hint.textContent = mode === 'builtin'
     ? 'Enter a camera source above and click Connect'
@@ -1255,7 +1292,7 @@ window.addEventListener('load', () => {
     const el = document.getElementById('cfg-conf-' + cls);
     if (el) el.addEventListener('input', syncSliderLabels);
   });
-  const savedMode = localStorage.getItem('feedMode') || 'builtin';
+  const savedMode = localStorage.getItem('feedMode') || 'external';
   setFeedMode(savedMode);
   const savedIP  = localStorage.getItem('streamIP');
   if (savedIP) document.getElementById('stream-ip').value = savedIP;
@@ -1263,6 +1300,7 @@ window.addEventListener('load', () => {
   if (savedSrc) document.getElementById('camera-source').value = savedSrc;
   loadStats();
   setInterval(loadStats, 30000);
+  loadInitialAlerts();   // ← Load existing active alerts from DB on boot
   startPolling(cfg.pollInterval);
   poll();
 });

@@ -173,6 +173,8 @@ def detection_loop():
                         "object_class":  object_class,
                         "confidence":    round(confidence, 4),
                         "location_note": f"CAM-01: {label}",
+                        "status":        "active",
+                        "severity":      severity,
                     }
                     try:
                         r = requests.post(DJANGO_URL, json=payload, timeout=3)
