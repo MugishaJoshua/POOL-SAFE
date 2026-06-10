@@ -55,3 +55,13 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification [{self.event.object_class}] - {'read' if self.read else 'unread'}"
+
+
+class AlertRecipient(models.Model):
+    """Stores email addresses that receive real-time alert notifications."""
+    email = models.EmailField(unique=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.email

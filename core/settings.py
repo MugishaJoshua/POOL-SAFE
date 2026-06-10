@@ -51,13 +51,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'poolguard',
+            'USER': 'postgres',
+            'PASSWORD': 'mugisha123josh',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = []
@@ -71,7 +83,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Required for POST requests to work on Railway (and any non-localhost domain)
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://pool-safe-production.up.railway.app').split(',')
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://pool-guard.onrender.com/').split(',')
     if origin.strip()
 ]
 

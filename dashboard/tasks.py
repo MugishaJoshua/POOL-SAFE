@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from collections import Counter
-from .models import DetectionEvent
+from .models import DetectionEvent, AlertRecipient
 
 
 def send_daily_digest():
@@ -45,10 +45,15 @@ def send_daily_digest():
             "- PoolGuard System"
         )
 
+    # Use DB-configured recipients; fall back to settings if none saved
+    recipients = list(AlertRecipient.objects.filter(is_active=True).values_list('email', flat=True))
+    if not recipients:
+        recipients = [settings.DIGEST_RECIPIENT_EMAIL]
+
     send_mail(
         subject=subject,
         message=body,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[settings.DIGEST_RECIPIENT_EMAIL],
+        recipient_list=recipients,
         fail_silently=False,
     )

@@ -24,7 +24,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 
-from .models import DetectionEvent, Notification
+from .models import DetectionEvent, Notification, AlertRecipient
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,34 +72,8 @@ def dashboard(request):
 
 # ── Ingest (now accepts multipart OR JSON) ────────────────────────────────────
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def send_alert_email(event, message):
-    """Send an immediate email alert for a detection event."""
-    subject = f"[PoolGuard] {event.severity.upper()} Alert — {event.object_class.title()} Detected"
-    body = f"""PoolGuard has detected a potential pool safety threat.
 
-Class:      {event.object_class.title()}
-Severity:   {event.severity.upper()}
-Confidence: {event.confidence:.1%}
-Location:   {event.location_note}
-Time:       {event.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
 
-Message: {message}
-
---
-PoolGuard AI Surveillance System
-"""
-    try:
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[settings.DIGEST_RECIPIENT_EMAIL],
-            fail_silently=True,
-        )
-    except Exception as e:
-        print(f"[PoolGuard] Email send failed: {e}")
 def ingest_detection(request):
     """
     Accepts detection data from the YOLOv8 detector.
@@ -675,3 +649,39 @@ def video_feed(request):
         generate_frames(source),
         content_type='multipart/x-mixed-replace; boundary=frame',
     )
+
+# ── Alert recipient settings ──────────────────────────────────────────────────
+
+@require_http_methods(["GET"])
+def get_alert_emails(request):
+    recipients = list(AlertRecipient.objects.filter(is_active=True).values('id', 'email', 'added_at'))
+    for r in recipients:
+        r['added_at'] = r['added_at'].strftime('%Y-%m-%d %H:%M:%S')
+    return JsonResponse({'recipients': recipients})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def save_alert_email(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action')  # 'add' | 'remove'
+    email  = data.get('email', '').strip().lower()
+
+    if not email:
+        return JsonResponse({'error': 'Email is required'}, status=400)
+
+    if action == 'add':
+        obj, created = AlertRecipient.objects.get_or_create(email=email)
+        obj.is_active = True
+        obj.save()
+        return JsonResponse({'status': 'added', 'id': obj.id})
+
+    elif action == 'remove':
+        AlertRecipient.objects.filter(email=email).update(is_active=False)
+        return JsonResponse({'status': 'removed'})
+
+    return JsonResponse({'error': 'Invalid action'}, status=400)

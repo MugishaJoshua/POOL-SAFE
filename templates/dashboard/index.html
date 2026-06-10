@@ -715,6 +715,26 @@
         </div>
       </div>
     </div>
+    <div class="card-solo">
+  <div class="card-title"><span>Email Alert Recipients</span></div>
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="setting-row">
+      <div class="setting-label">
+        <div class="setting-name">Recipient Email</div>
+        <div class="setting-desc">This address will receive an instant email whenever a threat is detected</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="new-recipient-email" class="stream-input" type="email"
+          placeholder="manager@example.com" style="width:240px;">
+        <button class="btn-primary" onclick="addAlertEmail()">Add</button>
+      </div>
+    </div>
+    <div id="recipients-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="no-recipients-msg" style="font-size:12px;color:var(--muted);display:none;">
+      No recipients configured. Add one above.
+    </div>
+  </div>
+</div>
     <div style="display:flex;align-items:center;gap:14px;">
       <button class="btn-primary" onclick="saveSettings()" style="padding:10px 28px;">Save Settings</button>
       <button class="demo-btn" onclick="resetSettings()">Reset to Defaults</button>
@@ -1282,7 +1302,59 @@ function resetSettings() {
   localStorage.removeItem('pgSettings');
   loadSettingsUI(); applyDark(DEFAULTS.darkMode); startPolling(DEFAULTS.pollInterval);
 }
+// ── Email Alert Recipients ──
+async function loadAlertEmails() {
+  try {
+    const res  = await fetch('/api/settings/email/');
+    const data = await res.json();
+    renderRecipients(data.recipients);
+  } catch(e) { console.error('Failed to load alert emails', e); }
+}
 
+function renderRecipients(recipients) {
+  const list = document.getElementById('recipients-list');
+  const none = document.getElementById('no-recipients-msg');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!recipients.length) { none.style.display = 'block'; return; }
+  none.style.display = 'none';
+  recipients.forEach(r => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;' +
+      'padding:10px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);';
+    row.innerHTML = `
+      <span style="font-size:13px;color:var(--text);">✉️ &nbsp;${r.email}</span>
+      <button onclick="removeAlertEmail('${r.email}')"
+        style="background:transparent;border:1px solid var(--border2);color:var(--danger);
+               font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:var(--font);">
+        Remove
+      </button>`;
+    list.appendChild(row);
+  });
+}
+
+async function addAlertEmail() {
+  const input = document.getElementById('new-recipient-email');
+  const email = input.value.trim();
+  if (!email) return;
+  const res  = await fetch('/api/settings/email/save/', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ action:'add', email })
+  });
+  const data = await res.json();
+  if (data.status === 'added') { input.value = ''; loadAlertEmails(); }
+}
+
+async function removeAlertEmail(email) {
+  const res  = await fetch('/api/settings/email/save/', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ action:'remove', email })
+  });
+  const data = await res.json();
+  if (data.status === 'removed') loadAlertEmails();
+}
 // ── Boot ──
 window.addEventListener('load', () => {
   const cfg = getSettings();
@@ -1299,6 +1371,7 @@ window.addEventListener('load', () => {
   const savedSrc = localStorage.getItem('cameraSource');
   if (savedSrc) document.getElementById('camera-source').value = savedSrc;
   loadStats();
+  loadAlertEmails();
   setInterval(loadStats, 30000);
   loadInitialAlerts();   // ← Load existing active alerts from DB on boot
   startPolling(cfg.pollInterval);
