@@ -3,6 +3,8 @@ import json
 import threading
 import time
 from datetime import timedelta
+from django.core.mail import send_mail
+from django.conf import settings
 
 from django.core.files.base import ContentFile
 from django.db.models import Count
@@ -72,6 +74,32 @@ def dashboard(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+def send_alert_email(event, message):
+    """Send an immediate email alert for a detection event."""
+    subject = f"[PoolGuard] {event.severity.upper()} Alert — {event.object_class.title()} Detected"
+    body = f"""PoolGuard has detected a potential pool safety threat.
+
+Class:      {event.object_class.title()}
+Severity:   {event.severity.upper()}
+Confidence: {event.confidence:.1%}
+Location:   {event.location_note}
+Time:       {event.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+
+Message: {message}
+
+--
+PoolGuard AI Surveillance System
+"""
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[settings.DIGEST_RECIPIENT_EMAIL],
+            fail_silently=True,
+        )
+    except Exception as e:
+        print(f"[PoolGuard] Email send failed: {e}")
 def ingest_detection(request):
     """
     Accepts detection data from the YOLOv8 detector.
@@ -142,7 +170,7 @@ def ingest_detection(request):
 
     message = CLASS_MESSAGES.get(obj_class, f'{obj_class.title()} detected at pool.')
     Notification.objects.create(event=event, message=message)
-
+    send_alert_email(event, message) 
     return JsonResponse({'status': 'ok', 'event_id': event.id}, status=201)
 
 
