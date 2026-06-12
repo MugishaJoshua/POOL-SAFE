@@ -5,7 +5,6 @@ import time
 from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
-
 from django.core.files.base import ContentFile
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
@@ -69,7 +68,32 @@ def get_model():
 def dashboard(request):
     return render(request, 'dashboard/index.html')
 
-
+def send_alert_email(event, message):
+    try:
+        recipients = list(
+            AlertRecipient.objects.filter(is_active=True).values_list('email', flat=True)
+        )
+        if not recipients:
+            return
+        send_mail(
+            subject=f'[PoolGuard] {event.severity.upper()} Alert — {event.object_class.title()} Detected',
+            message=(
+                f'PoolGuard has detected a hazard at the pool.\n\n'
+                f'Object:     {event.object_class.title()}\n'
+                f'Confidence: {event.confidence:.1%}\n'
+                f'Severity:   {event.severity.upper()}\n'
+                f'Location:   {event.location_note}\n'
+                f'Time:       {event.timestamp.strftime("%Y-%m-%d %H:%M:%S")}\n\n'
+                f'{message}\n\n'
+                f'Log in to the dashboard for details:\n'
+                f'https://pool-guard.onrender.com'
+            ),
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=recipients,
+            fail_silently=True,
+        )
+    except Exception as e:
+        print(f'Email error: {e}')
 # ── Ingest (now accepts multipart OR JSON) ────────────────────────────────────
 
 

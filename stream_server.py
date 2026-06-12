@@ -177,11 +177,12 @@ def detection_loop():
                         "severity":      severity,
                     }
                     try:
-                        r = requests.post(DJANGO_URL, json=payload, timeout=3)
+                        r = requests.post(DJANGO_URL, json=payload, timeout=10)
                         if r.status_code == 201:
                             print(f"\n  🚨 ALERT SENT: {label} → {object_class}  {confidence:.0%}  [{severity}]")
                         else:
-                            print(f"\n  ⚠️  Server {r.status_code}: {r.text}")
+                            error_detail = r.json().get('error', '?') if 'json' in r.headers.get('Content-Type', '') else f"HTTP {r.status_code}"
+                            print(f"\n  ⚠️  Alert failed: {error_detail}")
                     except Exception as e:
                         print(f"\n  ❌  Send failed: {e}")
 
