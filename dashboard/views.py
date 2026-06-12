@@ -73,7 +73,8 @@ def dashboard(request):
 # ── Ingest (now accepts multipart OR JSON) ────────────────────────────────────
 
 
-
+@csrf_exempt
+@require_http_methods(["POST"])
 def ingest_detection(request):
     """
     Accepts detection data from the YOLOv8 detector.
