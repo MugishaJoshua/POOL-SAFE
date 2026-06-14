@@ -23,6 +23,7 @@ class DetectionEvent(models.Model):
     severity = models.CharField(max_length=10, choices=SEVERITY, default='medium')
     location_note = models.CharField(max_length=200, blank=True, default='Pool Perimeter')
     acknowledged = models.BooleanField(default=False)
+    synced_to_cloud = models.BooleanField(default=False)
 
     # ── New image fields ──────────────────────────────────────────────────────
     full_frame = models.ImageField(

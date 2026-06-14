@@ -1,5 +1,13 @@
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+os.environ.pop('DATABASE_URL', None)  # force local PostgreSQL, ignore cloud URL
+django.setup()
+
 from flask import Flask, Response
 from ultralytics import YOLO
+from dashboard.models import DetectionEvent, Notification
+from django.utils import timezone
 import cv2
 import requests
 import time
@@ -9,41 +17,100 @@ import numpy as np
 app = Flask(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-MODEL_PATH     = "best.pt"
-DJANGO_URL = "https://pool-guard.onrender.com/api/ingest/"
-CONFIDENCE     = 0.40          # YOLO pre-filter — kept low, gated below
-FRAME_INTERVAL = 2             # seconds between alerts for the same class
+MODEL_PATH       = "best.pt"
+DJANGO_URL       = "https://pool-guard.onrender.com/api/ingest/"
+CONFIDENCE       = 0.40
+FRAME_INTERVAL   = 2
 
-DETECT_THRESHOLD = 0.80        # print to terminal if confidence ≥ this
-ALERT_THRESHOLD  = 0.80        # send to Django (trigger alert) if confidence ≥ this
+DETECT_THRESHOLD = 0.80
+ALERT_THRESHOLD  = 0.80
 
-CAMERA_SOURCE  = 0             # 0 = first webcam; swap for RTSP string if needed
+CAMERA_SOURCE    = 0
 
 # ── Class config ──────────────────────────────────────────────────────────────
 SEVERITY_MAP = {
-    "Animal":  "high",
-    "Food":    "high",
-    "Trash":   "medium",
-    "Bottle":  "low",
+    "Animal": "high",
+    "Food":   "high",
+    "Trash":  "medium",
+    "Bottle": "low",
 }
 
 CLASS_MAP = {
-    "Animal":  "animal",
-    "Food":    "food",
-    "Trash":   "trash",
-    "Bottle":  "bottle",
+    "Animal": "animal",
+    "Food":   "food",
+    "Trash":  "trash",
+    "Bottle": "bottle",
 }
 
-THREAT_CLASSES = set(CLASS_MAP.keys())   # only these are ever alerted on
+CLASS_MESSAGES = {
+    "animal": "Animal intrusion detected! Escort animal away from pool area.",
+    "food":   "Food remains spotted at pool perimeter. Collect before attracting pests.",
+    "trash":  "Trash detected near the pool. Please remove immediately.",
+    "bottle": "Plastic bottle found near pool edge. Remove to prevent water contamination.",
+}
+
+THREAT_CLASSES = set(CLASS_MAP.keys())
+
+# ── Local PostgreSQL helpers ──────────────────────────────────────────────────
+
+def save_local(payload):
+    """Save detection to local PostgreSQL via Django ORM. Returns event id or None."""
+    try:
+        event = DetectionEvent.objects.create(
+            object_class  = payload['object_class'],
+            confidence    = payload['confidence'],
+            severity      = payload['severity'],
+            location_note = payload['location_note'],
+            synced_to_cloud = False,
+        )
+        message = CLASS_MESSAGES.get(payload['object_class'], f"{payload['object_class']} detected.")
+        Notification.objects.create(event=event, message=message)
+        return event.id
+    except Exception as e:
+        print(f"  ❌ Local save failed: {e}")
+        return None
+
+
+def mark_synced(event_id):
+    try:
+        DetectionEvent.objects.filter(id=event_id).update(synced_to_cloud=True)
+    except Exception as e:
+        print(f"  ❌ Mark synced failed: {e}")
+
+
+def flush_queue():
+    """Background thread: retry unsynced local detections every 30 seconds."""
+    while True:
+        time.sleep(30)
+        try:
+            pending = DetectionEvent.objects.filter(synced_to_cloud=False)
+            count = pending.count()
+            if count:
+                print(f"\n  🔄 Syncing {count} pending detection(s) to cloud...")
+
+            for event in pending:
+                payload = {
+                    "object_class":  event.object_class,
+                    "confidence":    float(event.confidence),
+                    "location_note": event.location_note,
+                    "severity":      event.severity,
+                }
+                try:
+                    r = requests.post(DJANGO_URL, json=payload, timeout=10)
+                    if r.status_code == 201:
+                        event.synced_to_cloud = True
+                        event.save()
+                        print(f"  ✅ Synced event #{event.id} to cloud")
+                except Exception:
+                    pass  # will retry next cycle
+
+        except Exception as e:
+            print(f"  ❌ Flush error: {e}")
+
 
 # ── Camera helpers ────────────────────────────────────────────────────────────
 
 def open_camera(source=CAMERA_SOURCE):
-    """
-    For integer (webcam) sources: try DSHOW → MSMF → CAP_ANY.
-    For string (RTSP/HTTP) sources: try CAP_FFMPEG → CAP_ANY.
-    Returns an opened VideoCapture or raises RuntimeError.
-    """
     if isinstance(source, str):
         backends = [
             (cv2.CAP_FFMPEG, "FFMPEG"),
@@ -64,14 +131,12 @@ def open_camera(source=CAMERA_SOURCE):
             print("failed to open")
             continue
 
-        # Verify we can actually grab a frame
         ok, _ = cap.read()
         if not ok:
             cap.release()
             print("opened but no frames — skipping")
             continue
 
-        # Set resolution and FPS
         cap.set(cv2.CAP_PROP_FRAME_WIDTH,  1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         cap.set(cv2.CAP_PROP_FPS, 30)
@@ -99,7 +164,6 @@ def detection_loop():
     global current_frame
 
     while True:
-        # ── Open camera (with retry) ──────────────────────────────────────────
         cap = None
         while cap is None:
             try:
@@ -112,7 +176,6 @@ def detection_loop():
                 camera_ok.clear()
                 time.sleep(5)
 
-        # ── Frame loop ────────────────────────────────────────────────────────
         consecutive_failures = 0
         while True:
             ret, frame = cap.read()
@@ -131,25 +194,20 @@ def detection_loop():
             consecutive_failures = 0
             current_time = time.time()
 
-            # ── Run YOLO ─────────────────────────────────────────────────────
-            results = model(frame, conf=CONFIDENCE, iou=0.45, imgsz=640, verbose=False)
+            results  = model(frame, conf=CONFIDENCE, iou=0.45, imgsz=640, verbose=False)
             annotated = results[0].plot()
 
             with frame_lock:
                 current_frame = annotated.copy()
 
-            # ── Process detections ────────────────────────────────────────────
             for result in results:
                 for box in result.boxes:
                     class_id   = int(box.cls[0])
                     confidence = float(box.conf[0])
                     label      = model.names[class_id]
 
-                    # Only process known threat classes — silently skip everything else
                     if label not in THREAT_CLASSES:
                         continue
-
-                    # Gate 1: must meet detection threshold to even appear in terminal
                     if confidence < DETECT_THRESHOLD:
                         continue
 
@@ -158,33 +216,38 @@ def detection_loop():
 
                     print(f"  👁  {label} → {object_class}  {confidence:.0%}  [{severity}]", end="")
 
-                    # Gate 2: must meet alert threshold to send to Django
                     if confidence < ALERT_THRESHOLD:
                         print("  (detected — below alert threshold)")
                         continue
 
-                    # Cooldown: don't flood the backend with the same class
                     if current_time - last_sent.get(label, 0) < FRAME_INTERVAL:
                         print("  (cooldown)")
                         continue
 
-                    # ── Send alert ────────────────────────────────────────────
                     payload = {
                         "object_class":  object_class,
                         "confidence":    round(confidence, 4),
                         "location_note": f"CAM-01: {label}",
-                        "status":        "active",
                         "severity":      severity,
                     }
+
+                    # ── Always save to local PostgreSQL first ─────────────────
+                    event_id = save_local(payload)
+                    if event_id:
+                        print(f"\n  💾 Saved locally (#{event_id}): {label} [{severity}]")
+
+                    # ── Then try cloud ────────────────────────────────────────
                     try:
                         r = requests.post(DJANGO_URL, json=payload, timeout=10)
                         if r.status_code == 201:
-                            print(f"\n  🚨 ALERT SENT: {label} → {object_class}  {confidence:.0%}  [{severity}]")
+                            if event_id:
+                                mark_synced(event_id)
+                            print(f"  🚨 ALERT SENT to cloud: {label} → {object_class}  {confidence:.0%}  [{severity}]")
                         else:
                             error_detail = r.json().get('error', '?') if 'json' in r.headers.get('Content-Type', '') else f"HTTP {r.status_code}"
-                            print(f"\n  ⚠️  Alert failed: {error_detail}")
-                    except Exception as e:
-                        print(f"\n  ❌  Send failed: {e}")
+                            print(f"  ⚠️  Cloud failed: {error_detail} — will retry in 30s")
+                    except Exception:
+                        print(f"  📦 Offline — will sync to cloud when back online")
 
                     last_sent[label] = current_time
 
@@ -223,7 +286,7 @@ def generate():
         _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        time.sleep(0.033)   # ~30 fps
+        time.sleep(0.033)
 
 
 # ── Flask routes ──────────────────────────────────────────────────────────────
@@ -234,7 +297,13 @@ def stream():
 
 @app.route('/health')
 def health():
-    return {'status': 'ok', 'camera': camera_ok.is_set()}
+    total    = DetectionEvent.objects.count()
+    unsynced = DetectionEvent.objects.filter(synced_to_cloud=False).count()
+    return {
+        'status':   'ok',
+        'camera':   camera_ok.is_set(),
+        'local_db': {'total': total, 'pending_sync': unsynced},
+    }
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -242,6 +311,10 @@ def health():
 if __name__ == '__main__':
     t = threading.Thread(target=detection_loop, daemon=True)
     t.start()
+
+    q = threading.Thread(target=flush_queue, daemon=True)
+    q.start()
+
     print("Stream server running at http://localhost:5000/stream")
     print("Health check at     http://localhost:5000/health\n")
     app.run(host='0.0.0.0', port=5000, threaded=True)
