@@ -7,6 +7,7 @@ django.setup()
 from flask import Flask, Response
 from ultralytics import YOLO
 from dashboard.models import DetectionEvent, Notification
+from dashboard.tasks import send_realtime_alert, send_daily_digest
 from django.utils import timezone
 import cv2
 import requests
@@ -26,6 +27,8 @@ DETECT_THRESHOLD = 0.80
 ALERT_THRESHOLD  = 0.80
 
 CAMERA_SOURCE    = 0
+
+DIGEST_HOUR      = 8   # Send daily digest at 08:00 Kigali time
 
 # ── Class config ──────────────────────────────────────────────────────────────
 SEVERITY_MAP = {
@@ -57,10 +60,10 @@ def save_local(payload):
     """Save detection to local PostgreSQL via Django ORM. Returns event id or None."""
     try:
         event = DetectionEvent.objects.create(
-            object_class  = payload['object_class'],
-            confidence    = payload['confidence'],
-            severity      = payload['severity'],
-            location_note = payload['location_note'],
+            object_class    = payload['object_class'],
+            confidence      = payload['confidence'],
+            severity        = payload['severity'],
+            location_note   = payload['location_note'],
             synced_to_cloud = False,
         )
         message = CLASS_MESSAGES.get(payload['object_class'], f"{payload['object_class']} detected.")
@@ -106,6 +109,18 @@ def flush_queue():
 
         except Exception as e:
             print(f"  ❌ Flush error: {e}")
+
+
+def daily_digest_scheduler():
+    """Background thread: fire daily digest once at DIGEST_HOUR every day."""
+    sent_today = None
+    while True:
+        now = timezone.now()
+        if now.hour == DIGEST_HOUR and now.date() != sent_today:
+            print(f"\n  📅 Triggering daily digest...")
+            threading.Thread(target=send_daily_digest, daemon=True).start()
+            sent_today = now.date()
+        time.sleep(60)  # check every minute
 
 
 # ── Camera helpers ────────────────────────────────────────────────────────────
@@ -194,7 +209,7 @@ def detection_loop():
             consecutive_failures = 0
             current_time = time.time()
 
-            results  = model(frame, conf=CONFIDENCE, iou=0.45, imgsz=640, verbose=False)
+            results   = model(frame, conf=CONFIDENCE, iou=0.45, imgsz=640, verbose=False)
             annotated = results[0].plot()
 
             with frame_lock:
@@ -235,6 +250,13 @@ def detection_loop():
                     event_id = save_local(payload)
                     if event_id:
                         print(f"\n  💾 Saved locally (#{event_id}): {label} [{severity}]")
+
+                    # ── Send real-time email alert (non-blocking) ─────────────
+                    threading.Thread(
+                        target=send_realtime_alert,
+                        args=(object_class, round(confidence, 4), severity, f"CAM-01: {label}"),
+                        daemon=True
+                    ).start()
 
                     # ── Then try cloud ────────────────────────────────────────
                     try:
@@ -314,6 +336,9 @@ if __name__ == '__main__':
 
     q = threading.Thread(target=flush_queue, daemon=True)
     q.start()
+
+    d = threading.Thread(target=daily_digest_scheduler, daemon=True)
+    d.start()
 
     print("Stream server running at http://localhost:5000/stream")
     print("Health check at     http://localhost:5000/health\n")

@@ -68,74 +68,30 @@ def get_model():
 def dashboard(request):
     return render(request, 'dashboard/index.html')
 
-def send_alert_email(event, message):
-    try:
-        recipients = list(
-            AlertRecipient.objects.filter(is_active=True).values_list('email', flat=True)
-        )
-        if not recipients:
-            return
-        send_mail(
-            subject=f'[PoolGuard] {event.severity.upper()} Alert — {event.object_class.title()} Detected',
-            message=(
-                f'PoolGuard has detected a hazard at the pool.\n\n'
-                f'Object:     {event.object_class.title()}\n'
-                f'Confidence: {event.confidence:.1%}\n'
-                f'Severity:   {event.severity.upper()}\n'
-                f'Location:   {event.location_note}\n'
-                f'Time:       {event.timestamp.strftime("%Y-%m-%d %H:%M:%S")}\n\n'
-                f'{message}\n\n'
-                f'Log in to the dashboard for details:\n'
-                f'https://pool-guard.onrender.com'
-            ),
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=recipients,
-            fail_silently=True,
-        )
-    except Exception as e:
-        print(f'Email error: {e}')
-# ── Ingest (now accepts multipart OR JSON) ────────────────────────────────────
 
+# ── Ingest (now accepts multipart OR JSON) ────────────────────────────────────
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def ingest_detection(request):
-    """
-    Accepts detection data from the YOLOv8 detector.
-
-    Supports two content types:
-      • multipart/form-data  — detector sends images as file uploads
-      • application/json     — legacy / no-image mode
-
-    Multipart fields:
-      object_class, confidence, location_note   (text)
-      full_frame       (file, optional)
-      cropped_object   (file, optional)
-
-    JSON body fields (legacy):
-      object_class, confidence, image_path, location_note
-    """
     content_type = request.content_type or ''
 
     if 'multipart' in content_type:
-        # ── Multipart (with images) ───────────────────────────────────────
-        data = request.POST
-        obj_class    = data.get('object_class', '').lower()
-        confidence   = float(data.get('confidence', 0.0))
+        data          = request.POST
+        obj_class     = data.get('object_class', '').lower()
+        confidence    = float(data.get('confidence', 0.0))
         location_note = data.get('location_note', 'Pool Perimeter')
-        image_path   = ''  # no longer needed; kept for compat
+        image_path    = ''
     else:
-        # ── JSON (legacy / no-image) ──────────────────────────────────────
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
-        obj_class    = data.get('object_class', '').lower()
-        confidence   = float(data.get('confidence', 0.0))
+        obj_class     = data.get('object_class', '').lower()
+        confidence    = float(data.get('confidence', 0.0))
         location_note = data.get('location_note', 'Pool Perimeter')
-        image_path   = data.get('image_path', '')
+        image_path    = data.get('image_path', '')
 
-    # Validate class
     valid_classes = [c[0] for c in DetectionEvent._meta.get_field('object_class').choices]
     if obj_class not in valid_classes:
         return JsonResponse({'error': f'Unknown object_class: {obj_class}'}, status=400)
@@ -150,7 +106,6 @@ def ingest_detection(request):
         location_note=location_note,
     )
 
-    # Save image files if present
     if 'full_frame' in request.FILES:
         event.full_frame.save(
             f'full_frame_{timezone.now().strftime("%Y%m%d_%H%M%S%f")}.jpg',
@@ -169,7 +124,7 @@ def ingest_detection(request):
 
     message = CLASS_MESSAGES.get(obj_class, f'{obj_class.title()} detected at pool.')
     Notification.objects.create(event=event, message=message)
-    send_alert_email(event, message) 
+
     return JsonResponse({'status': 'ok', 'event_id': event.id}, status=201)
 
 
@@ -185,15 +140,15 @@ def poll_notifications(request):
     )
     data = [
         {
-            'id':           n.id,
-            'event_id':     n.event.id,
-            'object_class': n.event.object_class,
-            'confidence':   round(n.event.confidence * 100, 1),
-            'severity':     n.event.severity,
-            'location':     n.event.location_note,
-            'message':      n.message,
-            'timestamp':    n.event.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'image_path':   n.event.image_path,
+            'id':                 n.id,
+            'event_id':           n.event.id,
+            'object_class':       n.event.object_class,
+            'confidence':         round(n.event.confidence * 100, 1),
+            'severity':           n.event.severity,
+            'location':           n.event.location_note,
+            'message':            n.message,
+            'timestamp':          n.event.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'image_path':         n.event.image_path,
             'full_frame_url':     n.event.full_frame.url if n.event.full_frame else None,
             'cropped_object_url': n.event.cropped_object.url if n.event.cropped_object else None,
         }
@@ -245,20 +200,21 @@ def history(request):
 
     data = [
         {
-            'id':           e.id,
-            'object_class': e.object_class,
-            'confidence':   round(e.confidence * 100, 1),
-            'severity':     e.severity,
-            'location':     e.location_note,
-            'timestamp':    e.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'acknowledged': e.acknowledged,
-            'image_path':   e.image_path,
+            'id':                 e.id,
+            'object_class':       e.object_class,
+            'confidence':         round(e.confidence * 100, 1),
+            'severity':           e.severity,
+            'location':           e.location_note,
+            'timestamp':          e.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'acknowledged':       e.acknowledged,
+            'image_path':         e.image_path,
             'full_frame_url':     e.full_frame.url if e.full_frame else None,
             'cropped_object_url': e.cropped_object.url if e.cropped_object else None,
         }
         for e in events
     ]
     return JsonResponse({'events': data, 'total': total, 'page': page, 'per_page': per_page})
+
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
@@ -316,23 +272,21 @@ def download_event_pdf(request, event_id):
     grey   = colors.HexColor('#dee2e6')
     light  = colors.HexColor('#f8f9fa')
 
-    title_style = ParagraphStyle('PGTitle', parent=styles['Title'],
-                                 fontSize=22, textColor=blue, spaceAfter=6)
-    h2_style    = ParagraphStyle('PGH2', parent=styles['Heading2'],
-                                 fontSize=13, textColor=colors.HexColor('#333333'),
-                                 spaceBefore=14, spaceAfter=6)
+    title_style  = ParagraphStyle('PGTitle', parent=styles['Title'],
+                                  fontSize=22, textColor=blue, spaceAfter=6)
+    h2_style     = ParagraphStyle('PGH2', parent=styles['Heading2'],
+                                  fontSize=13, textColor=colors.HexColor('#333333'),
+                                  spaceBefore=14, spaceAfter=6)
     footer_style = ParagraphStyle('PGFooter', parent=styles['Normal'],
                                   fontSize=8, textColor=colors.grey, alignment=TA_CENTER)
 
     story = []
 
-    # Header
     story.append(Paragraph("PoolGuard — Detection Report", title_style))
     story.append(Paragraph(f"Event ID: #{event.id}", styles['Normal']))
     story.append(HRFlowable(width="100%", thickness=1, color=blue))
     story.append(Spacer(1, 14))
 
-    # Details table
     details = [
         ['Field', 'Value'],
         ['Detected Class', event.object_class.title()],
@@ -344,21 +298,20 @@ def download_event_pdf(request, event_id):
     ]
     tbl = Table(details, colWidths=[2 * inch, 4 * inch])
     tbl.setStyle(TableStyle([
-        ('BACKGROUND',   (0, 0), (-1, 0), blue),
-        ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
-        ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',     (0, 0), (-1, 0), 11),
-        ('FONTNAME',     (0, 1), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE',     (0, 1), (-1, -1), 10),
+        ('BACKGROUND',     (0, 0), (-1, 0), blue),
+        ('TEXTCOLOR',      (0, 0), (-1, 0), colors.white),
+        ('FONTNAME',       (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE',       (0, 0), (-1, 0), 11),
+        ('FONTNAME',       (0, 1), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE',       (0, 1), (-1, -1), 10),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [light, colors.white]),
-        ('GRID',         (0, 0), (-1, -1), 0.5, grey),
-        ('PADDING',      (0, 0), (-1, -1), 8),
-        ('ALIGN',        (0, 0), (-1, -1), 'LEFT'),
+        ('GRID',           (0, 0), (-1, -1), 0.5, grey),
+        ('PADDING',        (0, 0), (-1, -1), 8),
+        ('ALIGN',          (0, 0), (-1, -1), 'LEFT'),
     ]))
     story.append(tbl)
     story.append(Spacer(1, 20))
 
-    # Images
     if event.full_frame or event.cropped_object:
         story.append(Paragraph("Captured Images", h2_style))
         story.append(HRFlowable(width="100%", thickness=0.5, color=grey))
@@ -380,7 +333,6 @@ def download_event_pdf(request, event_id):
         except Exception:
             story.append(Paragraph("Cropped image unavailable.", styles['Normal']))
 
-    # Footer
     story.append(Spacer(1, 20))
     story.append(HRFlowable(width="100%", thickness=0.5, color=grey))
     story.append(Spacer(1, 6))
@@ -411,25 +363,24 @@ def download_full_report_pdf(request):
     light = colors.HexColor('#f8f9fa')
     now   = timezone.now()
 
-    title_style = ParagraphStyle('PGTitle', parent=styles['Title'],
-                                 fontSize=24, textColor=blue, alignment=TA_CENTER, spaceAfter=8)
-    sub_style   = ParagraphStyle('PGSub', parent=styles['Normal'],
-                                 fontSize=12, textColor=colors.grey, alignment=TA_CENTER, spaceAfter=20)
-    h2_style    = ParagraphStyle('PGH2', parent=styles['Heading2'],
-                                 fontSize=14, textColor=blue, spaceBefore=20, spaceAfter=8)
+    title_style  = ParagraphStyle('PGTitle', parent=styles['Title'],
+                                  fontSize=24, textColor=blue, alignment=TA_CENTER, spaceAfter=8)
+    sub_style    = ParagraphStyle('PGSub', parent=styles['Normal'],
+                                  fontSize=12, textColor=colors.grey, alignment=TA_CENTER, spaceAfter=20)
+    h2_style     = ParagraphStyle('PGH2', parent=styles['Heading2'],
+                                  fontSize=14, textColor=blue, spaceBefore=20, spaceAfter=8)
     footer_style = ParagraphStyle('PGFooter', parent=styles['Normal'],
                                   fontSize=8, textColor=colors.grey, alignment=TA_CENTER)
 
-    events      = DetectionEvent.objects.all()
-    total       = events.count()
-    unack       = events.filter(acknowledged=False).count()
-    high_count  = events.filter(severity='high').count()
-    med_count   = events.filter(severity='medium').count()
-    low_count   = events.filter(severity='low').count()
+    events     = DetectionEvent.objects.all()
+    total      = events.count()
+    unack      = events.filter(acknowledged=False).count()
+    high_count = events.filter(severity='high').count()
+    med_count  = events.filter(severity='medium').count()
+    low_count  = events.filter(severity='low').count()
 
     story = []
 
-    # ── Cover ──
     story.append(Spacer(1, 60))
     story.append(Paragraph("PoolGuard", title_style))
     story.append(Paragraph("AI-Powered Pool Surveillance Report", sub_style))
@@ -438,34 +389,32 @@ def download_full_report_pdf(request):
     story.append(Paragraph(f"Generated: {now.strftime('%B %d, %Y at %H:%M:%S')}", sub_style))
     story.append(PageBreak())
 
-    # ── Summary stats ──
     story.append(Paragraph("Summary Statistics", h2_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=grey))
     story.append(Spacer(1, 10))
 
     stats_data = [
         ['Metric', 'Value'],
-        ['Total Detections',   str(total)],
-        ['Unacknowledged',     str(unack)],
-        ['High Severity',      str(high_count)],
-        ['Medium Severity',    str(med_count)],
-        ['Low Severity',       str(low_count)],
+        ['Total Detections', str(total)],
+        ['Unacknowledged',   str(unack)],
+        ['High Severity',    str(high_count)],
+        ['Medium Severity',  str(med_count)],
+        ['Low Severity',     str(low_count)],
     ]
     stats_tbl = Table(stats_data, colWidths=[3 * inch, 3 * inch])
     stats_tbl.setStyle(TableStyle([
-        ('BACKGROUND',   (0, 0), (-1, 0), blue),
-        ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
-        ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',     (0, 0), (-1, -1), 10),
-        ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
+        ('BACKGROUND',     (0, 0), (-1, 0), blue),
+        ('TEXTCOLOR',      (0, 0), (-1, 0), colors.white),
+        ('FONTNAME',       (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE',       (0, 0), (-1, -1), 10),
+        ('ALIGN',          (0, 0), (-1, -1), 'CENTER'),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [light, colors.white]),
-        ('GRID',         (0, 0), (-1, -1), 0.5, grey),
-        ('PADDING',      (0, 0), (-1, -1), 10),
+        ('GRID',           (0, 0), (-1, -1), 0.5, grey),
+        ('PADDING',        (0, 0), (-1, -1), 10),
     ]))
     story.append(stats_tbl)
     story.append(Spacer(1, 20))
 
-    # ── Class breakdown ──
     by_class = list(events.values('object_class').annotate(count=Count('id')).order_by('-count'))
     if by_class:
         story.append(Paragraph("Detection Class Breakdown", h2_style))
@@ -477,19 +426,18 @@ def download_full_report_pdf(request):
             class_data.append([item['object_class'].title(), str(item['count']), f"{pct:.1f}%"])
         class_tbl = Table(class_data, colWidths=[3 * inch, 1.5 * inch, 1.5 * inch])
         class_tbl.setStyle(TableStyle([
-            ('BACKGROUND',   (0, 0), (-1, 0), blue),
-            ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
-            ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE',     (0, 0), (-1, -1), 10),
-            ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
+            ('BACKGROUND',     (0, 0), (-1, 0), blue),
+            ('TEXTCOLOR',      (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',       (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',       (0, 0), (-1, -1), 10),
+            ('ALIGN',          (0, 0), (-1, -1), 'CENTER'),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [light, colors.white]),
-            ('GRID',         (0, 0), (-1, -1), 0.5, grey),
-            ('PADDING',      (0, 0), (-1, -1), 8),
+            ('GRID',           (0, 0), (-1, -1), 0.5, grey),
+            ('PADDING',        (0, 0), (-1, -1), 8),
         ]))
         story.append(class_tbl)
         story.append(PageBreak())
 
-    # ── All events table ──
     story.append(Paragraph("All Detection Events", h2_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=grey))
     story.append(Spacer(1, 10))
@@ -510,19 +458,18 @@ def download_full_report_pdf(request):
         colWidths=[0.4*inch, 1.2*inch, 0.9*inch, 0.8*inch, 1.3*inch, 1.3*inch, 0.4*inch],
     )
     ev_tbl.setStyle(TableStyle([
-        ('BACKGROUND',   (0, 0), (-1, 0), blue),
-        ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
-        ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',     (0, 0), (-1, -1), 8),
-        ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
+        ('BACKGROUND',     (0, 0), (-1, 0), blue),
+        ('TEXTCOLOR',      (0, 0), (-1, 0), colors.white),
+        ('FONTNAME',       (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE',       (0, 0), (-1, -1), 8),
+        ('ALIGN',          (0, 0), (-1, -1), 'CENTER'),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [light, colors.white]),
-        ('GRID',         (0, 0), (-1, -1), 0.5, grey),
-        ('PADDING',      (0, 0), (-1, -1), 5),
+        ('GRID',           (0, 0), (-1, -1), 0.5, grey),
+        ('PADDING',        (0, 0), (-1, -1), 5),
     ]))
     story.append(ev_tbl)
     story.append(PageBreak())
 
-    # ── Captured photos ──
     events_with_images = events.exclude(full_frame='').exclude(full_frame__isnull=True)
     if events_with_images.exists():
         story.append(Paragraph("Captured Photos", h2_style))
@@ -531,7 +478,6 @@ def download_full_report_pdf(request):
 
         label_style = ParagraphStyle('EvLabel', parent=styles['Normal'],
                                      fontSize=10, spaceBefore=10, spaceAfter=4)
-
         for e in events_with_images:
             story.append(Paragraph(
                 f"<b>Event #{e.id}</b> — {e.object_class.title()} | "
@@ -555,7 +501,6 @@ def download_full_report_pdf(request):
                     pass
             story.append(HRFlowable(width="100%", thickness=0.3, color=colors.HexColor('#eeeeee')))
 
-    # Footer
     story.append(Spacer(1, 20))
     story.append(HRFlowable(width="100%", thickness=0.5, color=grey))
     story.append(Spacer(1, 6))
@@ -575,7 +520,7 @@ def download_full_report_pdf(request):
 # ── Live video feed ───────────────────────────────────────────────────────────
 
 _feed_last_sent = {}
-_FEED_COOLDOWN  = 10  # seconds
+_FEED_COOLDOWN  = 10
 
 
 def generate_frames(source=0):
@@ -618,7 +563,6 @@ def generate_frames(source=0):
                         location_note='Live Camera',
                     )
 
-                    # ── Save full annotated frame ─────────────────────────
                     try:
                         _, full_buf = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
                         event.full_frame.save(
@@ -629,10 +573,8 @@ def generate_frames(source=0):
                     except Exception:
                         pass
 
-                    # ── Save cropped detection ────────────────────────────
                     try:
                         x1, y1, x2, y2 = map(int, box.xyxy[0])
-                        # add 10px padding, clamp to frame bounds
                         pad = 10
                         h, w = frame.shape[:2]
                         x1c = max(0, x1 - pad)
@@ -653,8 +595,8 @@ def generate_frames(source=0):
                     event.save()
                     Notification.objects.create(event=event, message=message)
 
-            _, buffer_   = cv2.imencode('.jpg', annotated)
-            frame_bytes  = buffer_.tobytes()
+            _, buffer_  = cv2.imencode('.jpg', annotated)
+            frame_bytes = buffer_.tobytes()
             yield (
                 b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n'
@@ -675,6 +617,7 @@ def video_feed(request):
         content_type='multipart/x-mixed-replace; boundary=frame',
     )
 
+
 # ── Alert recipient settings ──────────────────────────────────────────────────
 
 @require_http_methods(["GET"])
@@ -693,7 +636,7 @@ def save_alert_email(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    action = data.get('action')  # 'add' | 'remove'
+    action = data.get('action')
     email  = data.get('email', '').strip().lower()
 
     if not email:
