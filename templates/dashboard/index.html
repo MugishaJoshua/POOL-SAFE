@@ -724,7 +724,6 @@
           <option value="trash">🗑️ Trash</option>
           <option value="food">🍔 Food</option>
           <option value="bottle">🍶 Bottle</option>
-          <option value="littering">🚫 Littering</option>
         </select>
         <select id="filter-severity" class="stream-input" onchange="loadHistory(1)">
           <option value="">All Severities</option>
@@ -922,14 +921,13 @@
 <script>
 
 const state = { lastNotifId:0, allNotifs:[], histPage:1, trendChart:null, sevChart:null };
-const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶', littering:'🚫' };
+const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶', };
 
 const CLASS_MESSAGES = {
   trash:     'Trash detected near the pool. Please remove immediately.',
   food:      'Food remains spotted at pool perimeter. Collect before attracting pests.',
   animal:    'Animal intrusion detected! Escort animal away from pool area.',
   bottle:    'Plastic bottle found near pool edge. Remove to prevent water contamination.',
-  littering: 'Littering behaviors observed. Approach visitor and request compliance.',
 };
 
 const DEFAULTS = {
