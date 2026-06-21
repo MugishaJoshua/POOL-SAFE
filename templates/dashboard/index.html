@@ -436,17 +436,6 @@
   }
   .page-btn:hover, .page-btn.active { border-color: var(--blue-border); color: var(--blue); background: var(--blue-bg); }
 
-  /* ── DEMO BAR ── */
-  .demo-bar {
-    background: var(--surface); border: 1px solid var(--border);
-    border-left: 2px solid var(--warn);
-    padding: 14px 16px; display: flex; align-items: center;
-    gap: 8px; flex-wrap: wrap; border-radius: 10px;
-  }
-  .demo-label {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
-    text-transform: uppercase; color: var(--warn); flex-shrink: 0; width: 100%;
-  }
 
   .stream-input {
     background: var(--surface2); border: 1px solid var(--border2);
@@ -610,13 +599,7 @@
         <div id="class-chart-wrap" style="display:flex;flex-direction:column;gap:12px;margin-top:4px;"></div>
       </div>
     </div>
-    <div class="demo-bar">
-      <span class="demo-label">Simulate Detection</span>
-      <button class="demo-btn" onclick="simulate('trash')">🗑️ Trash</button>
-      <button class="demo-btn" onclick="simulate('food')">🍔 Food</button>
-      <button class="demo-btn" onclick="simulate('animal')">🐾 Animal</button>
-      <button class="demo-btn" onclick="simulate('bottle')">🍶 Bottle</button>
-    </div>
+    
   </div>
 
   <!-- ── LIVE FEED ── -->
@@ -1006,6 +989,40 @@ function showToast(n) {
   const rank = { low:0, medium:1, high:2 };
   if ((rank[n.severity] || 0) < (rank[cfg.minSeverity] || 0)) return;
   if (cfg.sound) playAlert(n.severity);
+  if (!cfg.toasts) return;
+
+  const CLASS_ICONS = { trash:'🗑️', food:'🍔', animal:'🐾', bottle:'🍶' };
+  const severityColors = { high:'#FF7070', medium:'#FFB84D', low:'#4DC987' };
+
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 3px solid ${severityColors[n.severity] || '#5B9BD5'};
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    pointer-events: all;
+    max-width: 320px;
+    animation: slide-in .25s ease-out;
+    cursor: pointer;
+  `;
+  toast.innerHTML = `
+    <div style="font-size:20px;flex-shrink:0;">${CLASS_ICONS[n.object_class] || '⚠️'}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;color:var(--text);text-transform:capitalize;">${n.object_class} detected</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;">${n.message || ''}</div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:4px)">${n.confidence}% confidence · ${n.severity}</div>
+    </div>
+    <div style="font-size:14px;color:var(--muted);cursor:pointer;flex-shrink:0;" onclick="this.closest('div[style]').remove()">✕</div>
+  `;
+  toast.onclick = () => toast.remove();
+
+  document.getElementById('toast-container').appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
 }
 
 function buildNotifItem(n) {
@@ -1378,14 +1395,6 @@ function loadAnalytics() {
   });
 }
 
-function simulate(objClass) {
-  const confidence = (0.7 + Math.random() * 0.28).toFixed(2);
-  fetch('/api/ingest/', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-    body: JSON.stringify({ object_class:objClass, confidence:parseFloat(confidence), location_note:'Pool Deck - Zone A' })
-  }).then(() => { loadStats(); loadInitialAlerts(); });
-}
 
 function getCookie(name) {
   const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
