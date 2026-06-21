@@ -29,7 +29,6 @@ from .models import DetectionEvent, Notification, AlertRecipient
 
 SEVERITY_MAP = {
     'Animal':    'high',
-    'Littering': 'high',
     'Trash':     'medium',
     'Food':      'medium',
     'Bottle':    'low',
@@ -40,7 +39,6 @@ CLASS_MESSAGES = {
     'food':      'Food remains spotted at pool perimeter. Collect before attracting pests.',
     'animal':    'Animal intrusion detected! Escort animal away from pool area.',
     'bottle':    'Plastic bottle found near pool edge. Remove to prevent water contamination.',
-    'littering': 'Littering behaviors observed. Approach visitor and request compliance.',
 }
 
 # ── Lazy YOLO loader ─────────────────────────────────────────────────────────
