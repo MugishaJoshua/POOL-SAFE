@@ -105,3 +105,6 @@ DIGEST_RECIPIENT_EMAIL = 'mugishajoshua567@gmail.com'
 
 TIME_ZONE = 'Africa/Kigali'
 USE_TZ = True
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'

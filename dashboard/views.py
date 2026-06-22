@@ -3,12 +3,15 @@ import json
 import threading
 import time
 from datetime import timedelta
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -61,13 +64,49 @@ def get_model():
     return _model
 
 
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
+def signup_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        form = UserCreationForm()
+    return render(request, 'dashboard/signup.html', {'form': form})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'dashboard/login.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
+@login_required
 def dashboard(request):
     return render(request, 'dashboard/index.html')
 
 
-# ── Ingest (now accepts multipart OR JSON) ────────────────────────────────────
+# ── Ingest (accepts multipart OR JSON) ───────────────────────────────────────
 
 @csrf_exempt
 @require_http_methods(["POST"])

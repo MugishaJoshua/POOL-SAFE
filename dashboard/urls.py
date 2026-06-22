@@ -2,6 +2,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Auth
+    path('signup/', views.signup_view, name='signup'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+
     # Dashboard
     path('', views.dashboard, name='dashboard'),
 
@@ -22,11 +27,11 @@ urlpatterns = [
     # Live feed
     path('video-feed/', views.video_feed, name='video_feed'),
 
-    # ── PDF downloads ─────────────────────────────────────────────────────────
+    # PDF downloads
     path('api/report/event/<int:event_id>/pdf/', views.download_event_pdf, name='event_pdf'),
     path('api/report/full/pdf/', views.download_full_report_pdf, name='full_report_pdf'),
 
-    # ── Alert recipient settings ──────────────────────────────────────────────
+    # Alert recipient settings
     path('api/settings/email/', views.get_alert_emails, name='get_alert_emails'),
     path('api/settings/email/save/', views.save_alert_email, name='save_alert_email'),
 ]

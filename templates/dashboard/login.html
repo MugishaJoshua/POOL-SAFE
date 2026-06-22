@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoolGuard — Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f1117;
+    color: #e8eaf0;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .card {
+    background: #1a1d27;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+    justify-content: center;
+  }
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: #5B9BD5;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+  .logo-text {
+    font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.3px;
+  }
+  .logo-text span { color: rgba(255,255,255,0.45); }
+
+  h2 {
+    font-size: 22px; font-weight: 700; color: #fff;
+    margin-bottom: 6px; text-align: center;
+  }
+  .subtitle {
+    font-size: 13px; color: rgba(180,190,210,0.6);
+    text-align: center; margin-bottom: 28px;
+  }
+
+  .field { margin-bottom: 16px; }
+  label {
+    display: block; font-size: 12px; font-weight: 500;
+    color: rgba(180,190,210,0.7); margin-bottom: 6px; letter-spacing: 0.3px;
+  }
+  input {
+    width: 100%; background: #212533;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #e8eaf0; font-family: 'Inter', sans-serif;
+    font-size: 14px; padding: 11px 14px;
+    border-radius: 8px; outline: none;
+    transition: border-color .15s;
+  }
+  input:focus { border-color: #5B9BD5; }
+
+  .errors {
+    background: rgba(255,112,112,0.1);
+    border: 1px solid rgba(255,112,112,0.25);
+    border-radius: 8px; padding: 10px 14px;
+    margin-bottom: 16px; font-size: 12px; color: #FF7070;
+  }
+
+  .btn {
+    width: 100%; background: #5B9BD5; border: none;
+    color: #fff; font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 600;
+    padding: 12px; border-radius: 8px;
+    cursor: pointer; transition: opacity .15s;
+    margin-top: 8px;
+  }
+  .btn:hover { opacity: 0.85; }
+
+  .footer {
+    text-align: center; margin-top: 24px;
+    font-size: 13px; color: rgba(180,190,210,0.5);
+  }
+  .footer a {
+    color: #5B9BD5; text-decoration: none; font-weight: 500;
+  }
+  .footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <div class="logo-text">Pool<span>Guard</span></div>
+  </div>
+
+  <h2>Welcome back</h2>
+  <p class="subtitle">Sign in to access the surveillance dashboard</p>
+
+  {% if form.errors %}
+  <div class="errors">
+    Invalid username or password. Please try again.
+  </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="field">
+      <label for="id_username">Username</label>
+      <input type="text" name="username" id="id_username" autocomplete="username" autofocus>
+    </div>
+    <div class="field">
+      <label for="id_password">Password</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Sign In</button>
+  </form>
+
+  <div class="footer">
+    Don't have an account? <a href="{% url 'signup' %}">Sign up</a>
+  </div>
+</div>
+
+</body>
+</html>

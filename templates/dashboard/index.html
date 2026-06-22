@@ -553,17 +553,30 @@
     <button class="nav-link"        data-page="settings"  onclick="showPage('settings')">Settings</button>
   </nav>
 
-  <div class="header-right">
+ <div class="header-right">
     <div class="live-badge"><div class="live-dot"></div> Live</div>
     <div id="clock">--:--:--</div>
     <button id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
     <button id="notif-bell" onclick="showPage('alerts');closeMobileNav()" title="Alerts">
       🔔<span id="notif-count">0</span>
     </button>
+    <a href="{% url 'logout' %}" style="
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.6);
+      font-size: 12px; font-weight: 500;
+      padding: 5px 12px; border-radius: 8px;
+      cursor: pointer; text-decoration: none;
+      display: flex; align-items: center; gap: 5px;
+      min-height: 36px; transition: all .2s;
+      font-family: var(--font);
+    " onmouseover="this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.5)'"
+       onmouseout="this.style.color='rgba(255,255,255,0.6)';this.style.borderColor='rgba(255,255,255,0.2)'">
+      ⏻ Logout
+    </a>
     <button id="hamburger" onclick="toggleMobileNav()" aria-label="Open menu">☰</button>
   </div>
 </header>
-
 <!-- Mobile nav drawer -->
 <nav id="mobile-nav">
   <button class="mobile-nav-link active" data-page="overview"  onclick="showPage('overview');closeMobileNav()">📊 Overview</button>
