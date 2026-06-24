@@ -110,6 +110,8 @@ def signup_view(request):
             user = form.save()
             login(request, user)
             return redirect('dashboard')
+        else:
+            print("Form errors:", form.errors)
     else:
         form = SignupForm()
     return render(request, 'dashboard/signup.html', {'form': form})
