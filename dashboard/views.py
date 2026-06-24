@@ -1,11 +1,14 @@
 import io
 import json
+import random
 import threading
 import time
 from datetime import timedelta
+from django import forms
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -44,6 +47,22 @@ CLASS_MESSAGES = {
     'bottle':    'Plastic bottle found near pool edge. Remove to prevent water contamination.',
 }
 
+# ── Forms ─────────────────────────────────────────────────────────────────────
+
+class SignupForm(BaseUserCreationForm):
+    email = forms.EmailField(required=True, widget=forms.EmailInput())
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        if commit:
+            user.save()
+        return user
+
 # ── Lazy YOLO loader ─────────────────────────────────────────────────────────
 
 _model = None
@@ -64,34 +83,108 @@ def get_model():
     return _model
 
 
+# ── OTP helpers ───────────────────────────────────────────────────────────────
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
+
+
+def send_otp_email(email, otp):
+    send_mail(
+        subject='PoolGuard — Your Login Code',
+        message=f'Your PoolGuard verification code is: {otp}\n\nThis code expires in 10 minutes.',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 def signup_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = SignupForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
             return redirect('dashboard')
     else:
-        form = UserCreationForm()
+        form = SignupForm()
     return render(request, 'dashboard/signup.html', {'form': form})
 
 
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
+    error = None
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            login(request, user)
-            return redirect('dashboard')
+            if not user.email:
+                # No email on file — log in directly
+                login(request, user)
+                return redirect('dashboard')
+            # Generate and send OTP
+            otp = generate_otp()
+            request.session['otp_code']    = otp
+            request.session['otp_user_id'] = user.id
+            request.session['otp_expires'] = (
+                timezone.now() + timedelta(minutes=10)
+            ).isoformat()
+            try:
+                send_otp_email(user.email, otp)
+            except Exception:
+                error = 'Failed to send OTP email. Please try again.'
+                return render(request, 'dashboard/login.html', {'form': form, 'error': error})
+            return redirect('otp_verify')
+        else:
+            error = 'Invalid username or password.'
     else:
         form = AuthenticationForm()
-    return render(request, 'dashboard/login.html', {'form': form})
+    return render(request, 'dashboard/login.html', {'form': form, 'error': error})
+
+
+def otp_verify_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    if 'otp_user_id' not in request.session:
+        return redirect('login')
+
+    error = None
+    if request.method == 'POST':
+        entered = request.POST.get('otp', '').strip()
+        stored  = request.session.get('otp_code')
+        expires = request.session.get('otp_expires')
+
+        # Check expiry
+        if timezone.now().isoformat() > expires:
+            error = 'Your code has expired. Please log in again.'
+            # Clear session
+            for key in ('otp_code', 'otp_user_id', 'otp_expires'):
+                request.session.pop(key, None)
+        elif entered != stored:
+            error = 'Incorrect code. Please try again.'
+        else:
+            # OTP correct — log the user in
+            user = User.objects.get(id=request.session['otp_user_id'])
+            login(request, user)
+            for key in ('otp_code', 'otp_user_id', 'otp_expires'):
+                request.session.pop(key, None)
+            return redirect('dashboard')
+
+    # Mask the email for display
+    try:
+        user  = User.objects.get(id=request.session['otp_user_id'])
+        email = user.email
+        parts = email.split('@')
+        masked = parts[0][:2] + '***@' + parts[1]
+    except Exception:
+        masked = '***'
+
+    return render(request, 'dashboard/otp_verify.html', {'masked_email': masked, 'error': error})
 
 
 def logout_view(request):

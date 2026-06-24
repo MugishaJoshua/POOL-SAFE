@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PoolGuard — Sign Up</title>
+<title>PoolGuard — Verify OTP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -46,41 +46,45 @@
   }
   .logo-text span { color: rgba(255,255,255,0.45); }
 
+  .shield {
+    text-align: center;
+    font-size: 44px;
+    margin-bottom: 16px;
+  }
+
   h2 {
     font-size: 22px; font-weight: 700; color: #fff;
     margin-bottom: 6px; text-align: center;
   }
   .subtitle {
     font-size: 13px; color: rgba(180,190,210,0.6);
-    text-align: center; margin-bottom: 28px;
+    text-align: center; margin-bottom: 28px; line-height: 1.6;
   }
+  .subtitle strong { color: #5B9BD5; }
 
   .field { margin-bottom: 16px; }
   label {
     display: block; font-size: 12px; font-weight: 500;
     color: rgba(180,190,210,0.7); margin-bottom: 6px; letter-spacing: 0.3px;
   }
-  input {
+
+  .otp-input {
     width: 100%; background: #212533;
     border: 1px solid rgba(255,255,255,0.1);
-    color: #e8eaf0; font-family: 'Inter', sans-serif;
-    font-size: 14px; padding: 11px 14px;
-    border-radius: 8px; outline: none;
+    color: #e8eaf0; font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 28px; font-weight: 700;
+    padding: 14px; border-radius: 8px; outline: none;
     transition: border-color .15s;
+    text-align: center; letter-spacing: 12px;
   }
-  input:focus { border-color: #5B9BD5; }
+  .otp-input:focus { border-color: #5B9BD5; }
 
-  .help-text {
-    font-size: 11px; color: rgba(180,190,210,0.45);
-    margin-top: 5px; line-height: 1.5;
-  }
-
-  .errors {
+  .error {
     background: rgba(255,112,112,0.1);
     border: 1px solid rgba(255,112,112,0.25);
     border-radius: 8px; padding: 10px 14px;
     margin-bottom: 16px; font-size: 12px; color: #FF7070;
-    line-height: 1.6;
+    text-align: center;
   }
 
   .btn {
@@ -101,6 +105,11 @@
     color: #5B9BD5; text-decoration: none; font-weight: 500;
   }
   .footer a:hover { text-decoration: underline; }
+
+  .expiry {
+    text-align: center; margin-top: 16px;
+    font-size: 12px; color: rgba(180,190,210,0.4);
+  }
 </style>
 </head>
 <body>
@@ -111,48 +120,40 @@
     <div class="logo-text">Pool<span>Guard</span></div>
   </div>
 
-  <h2>Create account</h2>
-  <p class="subtitle">Sign up to access the surveillance dashboard</p>
+  <div class="shield">🔐</div>
+  <h2>Check your email</h2>
+  <p class="subtitle">
+    We sent a 6-digit verification code to<br>
+    <strong>{{ masked_email }}</strong>
+  </p>
 
-  {% if form.errors %}
-  <div class="errors">
-    {% for field in form %}
-      {% for error in field.errors %}
-        <div>{{ error }}</div>
-      {% endfor %}
-    {% endfor %}
-    {% for error in form.non_field_errors %}
-      <div>{{ error }}</div>
-    {% endfor %}
-  </div>
+  {% if error %}
+  <div class="error">{{ error }}</div>
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
     <div class="field">
-      <label for="id_username">Username</label>
-      <input type="text" name="username" id="id_username" autocomplete="username" autofocus>
-      <div class="help-text">150 characters or fewer. Letters, digits and @/./+/-/_ only.</div>
+      <label for="otp">Verification Code</label>
+      <input
+        type="text"
+        name="otp"
+        id="otp"
+        class="otp-input"
+        maxlength="6"
+        placeholder="······"
+        autocomplete="one-time-code"
+        autofocus
+        inputmode="numeric"
+      >
     </div>
-    <div class="field">
-      <label for="id_email">Email Address</label>
-      <input type="email" name="email" id="id_email" autocomplete="email">
-      <div class="help-text">Used for OTP verification when you log in.</div>
-    </div>
-    <div class="field">
-      <label for="id_password1">Password</label>
-      <input type="password" name="password1" id="id_password1" autocomplete="new-password">
-      <div class="help-text">At least 8 characters. Cannot be entirely numeric.</div>
-    </div>
-    <div class="field">
-      <label for="id_password2">Confirm Password</label>
-      <input type="password" name="password2" id="id_password2" autocomplete="new-password">
-    </div>
-    <button type="submit" class="btn">Create Account</button>
+    <button type="submit" class="btn">Verify & Sign In</button>
   </form>
 
+  <div class="expiry">Code expires in 10 minutes</div>
+
   <div class="footer">
-    Already have an account? <a href="{% url 'login' %}">Sign in</a>
+    Wrong account? <a href="{% url 'login' %}">Back to login</a>
   </div>
 </div>
 
