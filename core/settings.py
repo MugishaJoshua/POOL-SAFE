@@ -1,6 +1,8 @@
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
