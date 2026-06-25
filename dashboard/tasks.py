@@ -7,11 +7,25 @@ from .models import DetectionEvent, AlertRecipient
 
 
 def get_recipients():
-    """Return active DB recipients, falling back to settings."""
+    """Fetch active recipients from cloud API, fall back to local DB, then settings."""
+    try:
+        import requests
+        r = requests.get('https://pool-guard.onrender.com/api/settings/email/', timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            emails = [rec['email'] for rec in data.get('recipients', [])]
+            if emails:
+                return emails
+    except Exception as e:
+        print(f"  ⚠️  Could not fetch cloud recipients: {e}")
+
+    # Fall back to local DB
     recipients = list(AlertRecipient.objects.filter(is_active=True).values_list('email', flat=True))
-    if not recipients:
-        recipients = [settings.DIGEST_RECIPIENT_EMAIL]
-    return recipients
+    if recipients:
+        return recipients
+
+    # Final fallback
+    return [settings.DIGEST_RECIPIENT_EMAIL]
 
 
 def send_realtime_alert(object_class, confidence, severity, location_note):
