@@ -1052,7 +1052,7 @@ function buildNotifItem(n) {
         <div class="notify-msg">${n.message || CLASS_MESSAGES[n.object_class] || n.object_class + ' detected at pool.'}</div>
         <div class="notify-meta"><span>${n.timestamp}</span><span>${n.location}</span><span>${n.confidence}% conf</span></div>
       </div>
-      <button class="ack-btn" onclick="acknowledge(${n.event_id},${n.id})">Clear</button>
+      <button class="ack-btn" onclick="acknowledge(${n.event_id},${n.id})">Delete</button>
     </div>`;
 }
 
@@ -1243,7 +1243,7 @@ function loadHistory(page) {
         <td>${e.location}</td>
         <td style="color:var(--muted);">${e.timestamp}</td>
         <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Cleared' : '● Active'}</td>
-        <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Clear</button>` : ''}</td>
+        <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Delete</button>` : ''}</td>
         <td><button class="btn-dl-event" onclick="downloadEventPDF(${e.id})">📥 PDF</button></td>
       </tr>`;
     }).join('');
