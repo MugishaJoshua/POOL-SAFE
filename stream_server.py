@@ -97,6 +97,8 @@ def flush_queue():
                     "confidence":    float(event.confidence),
                     "location_note": event.location_note,
                     "severity":      event.severity,
+                    "timestamp":     event.timestamp.isoformat(),
+                    "is_sync":       True,
                 }
                 try:
                     r = requests.post(DJANGO_URL, json=payload, timeout=10)
@@ -244,7 +246,8 @@ def detection_loop():
                         "confidence":    round(confidence, 4),
                         "location_note": f"CAM-01: {label}",
                         "severity":      severity,
-                    }
+                        "is_sync":       False,
+                        }
 
                     # ── Always save to local PostgreSQL first ─────────────────
                     event_id = save_local(payload)

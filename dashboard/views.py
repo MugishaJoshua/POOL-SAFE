@@ -213,6 +213,8 @@ def ingest_detection(request):
         confidence    = float(data.get('confidence', 0.0))
         location_note = data.get('location_note', 'Pool Perimeter')
         image_path    = ''
+        is_sync       = False
+        timestamp_str = None
     else:
         try:
             data = json.loads(request.body)
@@ -222,6 +224,8 @@ def ingest_detection(request):
         confidence    = float(data.get('confidence', 0.0))
         location_note = data.get('location_note', 'Pool Perimeter')
         image_path    = data.get('image_path', '')
+        is_sync       = data.get('is_sync', False)
+        timestamp_str = data.get('timestamp', None)
 
     valid_classes = [c[0] for c in DetectionEvent._meta.get_field('object_class').choices]
     if obj_class not in valid_classes:
@@ -236,6 +240,13 @@ def ingest_detection(request):
         severity=severity,
         location_note=location_note,
     )
+
+    # Preserve original timestamp for synced records
+    if is_sync and timestamp_str:
+        from django.utils.dateparse import parse_datetime
+        parsed = parse_datetime(timestamp_str)
+        if parsed:
+            event.timestamp = parsed
 
     if 'full_frame' in request.FILES:
         event.full_frame.save(
@@ -254,7 +265,9 @@ def ingest_detection(request):
     event.save()
 
     message = CLASS_MESSAGES.get(obj_class, f'{obj_class.title()} detected at pool.')
-    Notification.objects.create(event=event, message=message)
+    # Only create notification for live detections, not synced ones
+    if not is_sync:
+        Notification.objects.create(event=event, message=message)
 
     return JsonResponse({'status': 'ok', 'event_id': event.id}, status=201)
 

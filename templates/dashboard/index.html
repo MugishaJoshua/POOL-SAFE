@@ -1242,7 +1242,7 @@ function loadHistory(page) {
         <td><span class="badge ${e.severity}">${e.severity}</span></td>
         <td>${e.location}</td>
         <td style="color:var(--muted);">${e.timestamp}</td>
-        <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Cleared' : '● Active'}</td>
+        <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Deleted' : '● Active'}</td>
         <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Delete</button>` : ''}</td>
         <td><button class="btn-dl-event" onclick="downloadEventPDF(${e.id})">📥 PDF</button></td>
       </tr>`;
