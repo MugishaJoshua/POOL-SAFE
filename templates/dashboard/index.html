@@ -735,7 +735,7 @@
         <select id="filter-status" class="stream-input" onchange="loadHistory(1)">
           <option value="">All Statuses</option>
           <option value="active">● Active</option>
-          <option value="cleared">✓ Cleared</option>
+         
         </select>
         <input id="filter-date-from" class="stream-input" type="date" onchange="loadHistory(1)" style="font-family:var(--font);">
         <input id="filter-date-to"   class="stream-input" type="date" onchange="loadHistory(1)" style="font-family:var(--font);">
@@ -1242,8 +1242,8 @@ function loadHistory(page) {
         <td><span class="badge ${e.severity}">${e.severity}</span></td>
         <td>${e.location}</td>
         <td style="color:var(--muted);">${e.timestamp}</td>
-        <td style="color:${e.acknowledged ? 'var(--ok)' : 'var(--warn)'};">${e.acknowledged ? '✓ Deleted' : '● Active'}</td>
-        <td>${!e.acknowledged ? `<button class="ack-btn" onclick="ackFromHistory(${e.id},this)">Delete</button>` : ''}</td>
+        <td style="color:var(--warn);">● Active</td>
+        <td><button class="ack-btn" onclick="ackFromHistory(${e.id})">Delete</button></td>
         <td><button class="btn-dl-event" onclick="downloadEventPDF(${e.id})">📥 PDF</button></td>
       </tr>`;
     }).join('');
@@ -1255,20 +1255,16 @@ function loadHistory(page) {
 }
 
 function ackFromHistory(eventId) {
-  fetch(`/api/events/${eventId}/acknowledge/`, { method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')} })
+  if (!confirm('Delete this event permanently?')) return;
+  fetch('/api/events/${eventId}/delete/', { method:'DELETE', headers:{'X-CSRFToken' :getCookie('scfrtoken')} })
     .then(() => {
       state.allNotifs = state.allNotifs.filter(n => n.event_id !== eventId);
       updateUnreadBadge(); refreshOverviewNotifs();
       loadHistory();
+      
     });
-}
+  }
 
-function downloadFullReport() {
-  const a = document.createElement('a');
-  a.href = '/api/report/full/pdf/';
-  a.download = 'poolguard_full_report.pdf';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
 
 function downloadEventPDF(eventId) {
   const a = document.createElement('a');

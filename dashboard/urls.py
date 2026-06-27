@@ -24,6 +24,7 @@ urlpatterns = [
     # History & stats
     path('api/history/', views.history, name='history'),
     path('api/stats/', views.stats, name='stats'),
+    path('api/events/<int:event_id>/delete/', views.delete_event, name='delete_event'),
 
     # Live feed
     path('video-feed/', views.video_feed, name='video_feed'),

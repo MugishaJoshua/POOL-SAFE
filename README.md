@@ -1,6 +1,6 @@
 # PoolGuard 🏊 — AI-Powered Swimming Pool Safety Monitor
 
-PoolGuard is a real-time pool safety and contamination monitoring system. It uses a custom-trained YOLOv8 computer vision model to detect hazards in a swimming pool — trash, food, animals, bottles, and other foreign objects — and immediately alerts the pool manager through a live dashboard.
+PoolGuard is a real-time pool safety and contamination monitoring system. It uses a custom-trained YOLOv26 computer vision model to detect hazards in a swimming pool — trash, food, animals, bottles, and other foreign objects — and immediately alerts the pool manager through a live dashboard.
 
 ---
 
@@ -20,13 +20,13 @@ PoolGuard is made up of two components that work together:
 ┌─────────────────────────────┐         ┌──────────────────────────────────┐
 │   Stream Server (Local)     │         │   Django Dashboard (Railway)      │
 │                             │         │                                   │
-│  Camera → YOLOv8 Inference  │──POST──▶│  Ingest API → PostgreSQL DB       │
+│  Camera → YOLOv26 Inference  │──POST──▶│  Ingest API → PostgreSQL DB       │
 │  Flask + OpenCV             │         │  Dashboard → Chart.js Graphs      │
 │  (stream_server.py)         │         │  Email Alerts → Manager           │
 └─────────────────────────────┘         └──────────────────────────────────┘
 ```
 
-1. **Stream Server** runs locally (at the pool location). It reads the camera feed, runs YOLOv8 inference on every frame, and sends detection events to the Django backend via HTTP POST.
+1. **Stream Server** runs locally (at the pool location). It reads the camera feed, runs YOLOv26 inference on every frame, and sends detection events to the Django backend via HTTP POST.
 2. **Django Dashboard** receives detections, stores them in PostgreSQL, serves the manager dashboard, and sends email alerts on each detected hazard.
 
 ---
@@ -35,7 +35,7 @@ PoolGuard is made up of two components that work together:
 
 ### Real-Time Hazard Detection
 - Detects pool contaminants: **trash, food, animals, bottles, and littering**
-- Powered by a custom YOLOv8 model (`best.pt`) trained specifically on pool hazard images
+- Powered by a custom YOLOv26 model (`best.pt`) trained specifically on pool hazard images
 - Confidence threshold filtering to reduce false positives
 
 ### Live Manager Dashboard
@@ -172,7 +172,7 @@ Navigate to the live URL or your local server and log in with your manager crede
 
 | Metric          | Value  |
 |-----------------|--------|
-| Architecture    | YOLOv8 |
+| Architecture    | YOLOv26 |
 | Precision       | ~93%   |
 | Recall          | ~92%   |
 | mAP@50          | ~93%   |
@@ -190,7 +190,7 @@ Navigate to the live URL or your local server and log in with your manager crede
 |--------------|-----------------------------------|
 | Backend      | Django, Django REST Framework     |
 | Database     | PostgreSQL (hosted on Railway)    |
-| ML/CV        | YOLOv8 (Ultralytics), OpenCV      |
+| ML/CV        | YOLOv26 (Ultralytics), OpenCV      |
 | Stream Server| Flask                             |
 | Frontend     | Vanilla JS, Chart.js              |
 | Deployment   | Render                            |
@@ -208,7 +208,7 @@ POOL-SAFE/
 │   └── templates/          # HTML templates
 ├── pool_safe/              # Django project settings
 ├── stream_server.py        # Flask stream server (camera + YOLO inference)
-├── best.pt                 # Trained YOLOv8 model weights
+├── best.pt                 # Trained YOLOv26 model weights
 ├── requirements.txt
 ├── Dockerfile              # Railway deployment
 └── manage.py

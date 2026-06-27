@@ -315,7 +315,16 @@ def acknowledge_event(request, event_id):
     Notification.objects.filter(event_id=event_id).update(read=True)
     return JsonResponse({'status': 'ok'})
 
-
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_event(request, event_i):
+    try:
+        event = DetectionEvent.objects.get(id=event_id)
+        event.delete()
+        return JsonResponse({'status': 'deleted'})
+    except DetectionEvent.DoesNotExist:
+        return JsonResponse({'error': 'Not Found'}, status=404)
+                             
 # ── History ───────────────────────────────────────────────────────────────────
 
 @require_http_methods(["GET"])
