@@ -30,6 +30,34 @@ CAMERA_SOURCE    = 0
 
 DIGEST_HOUR      = 8   # Send daily digest at 08:00 Kigali time
 
+# ── Pool Zone (ROI) ───────────────────────────────────────────────────────────
+# Define the region of the camera frame that covers the pool and its immediate
+# surroundings. Detections whose centre point falls outside this zone are
+# ignored — preventing alerts for unrelated objects far from the pool.
+#
+# Values are in pixels (x1, y1, x2, y2) relative to the 1280×720 frame.
+# Adjust these once after installing the camera by checking the live stream.
+#
+# To calibrate: run the stream, take note of where the pool edges appear in
+# the frame, then set the coordinates to tightly box that area.
+#
+# Example: pool fills roughly the middle 80% of a 1280×720 frame:
+POOL_ZONE = (100, 80, 1180, 640)  # (x1, y1, x2, y2)
+
+# Set to False to disable zone filtering (e.g. during calibration)
+ENABLE_POOL_ZONE = True
+
+
+def in_pool_zone(x1, y1, x2, y2) -> bool:
+    """Return True if the centre of the detected bounding box is inside POOL_ZONE."""
+    if not ENABLE_POOL_ZONE:
+        return True
+    cx = (x1 + x2) // 2
+    cy = (y1 + y2) // 2
+    return (POOL_ZONE[0] < cx < POOL_ZONE[2] and
+            POOL_ZONE[1] < cy < POOL_ZONE[3])
+
+
 # ── Class config ──────────────────────────────────────────────────────────────
 SEVERITY_MAP = {
     "Animal": "high",
@@ -172,7 +200,11 @@ camera_ok     = threading.Event()
 print("Loading PoolGuard model...")
 model = YOLO(MODEL_PATH)
 print(f"Model loaded ✅  |  Classes: {list(model.names.values())}")
-print(f"Thresholds — detect: ≥{DETECT_THRESHOLD:.0%}  |  alert: ≥{ALERT_THRESHOLD:.0%}\n")
+print(f"Thresholds — detect: ≥{DETECT_THRESHOLD:.0%}  |  alert: ≥{ALERT_THRESHOLD:.0%}")
+if ENABLE_POOL_ZONE:
+    print(f"Pool zone active ✅  |  ROI: {POOL_ZONE}\n")
+else:
+    print("Pool zone disabled ⚠️\n")
 
 
 # ── Detection / capture loop ──────────────────────────────────────────────────
@@ -214,6 +246,21 @@ def detection_loop():
             results   = model(frame, conf=CONFIDENCE, iou=0.45, imgsz=640, verbose=False)
             annotated = results[0].plot()
 
+            # ── Draw pool zone rectangle on the live stream ───────────────────
+            if ENABLE_POOL_ZONE:
+                cv2.rectangle(
+                    annotated,
+                    (POOL_ZONE[0], POOL_ZONE[1]),
+                    (POOL_ZONE[2], POOL_ZONE[3]),
+                    (0, 255, 180),   # teal/green colour
+                    2                # line thickness
+                )
+                cv2.putText(
+                    annotated, "Pool Zone",
+                    (POOL_ZONE[0] + 6, POOL_ZONE[1] + 22),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 180), 2
+                )
+
             with frame_lock:
                 current_frame = annotated.copy()
 
@@ -226,6 +273,12 @@ def detection_loop():
                     if label not in THREAT_CLASSES:
                         continue
                     if confidence < DETECT_THRESHOLD:
+                        continue
+
+                    # ── ROI check: ignore detections outside pool zone ────────
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    if not in_pool_zone(x1, y1, x2, y2):
+                        print(f"  ⬜ {label} {confidence:.0%} — outside pool zone, ignored")
                         continue
 
                     severity     = SEVERITY_MAP[label]
@@ -327,6 +380,7 @@ def health():
     return {
         'status':   'ok',
         'camera':   camera_ok.is_set(),
+        'pool_zone': POOL_ZONE if ENABLE_POOL_ZONE else 'disabled',
         'local_db': {'total': total, 'pending_sync': unsynced},
     }
 
