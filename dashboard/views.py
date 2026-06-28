@@ -317,7 +317,7 @@ def acknowledge_event(request, event_id):
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
-def delete_event(request, event_i):
+def delete_event(request, event_id):
     try:
         event = DetectionEvent.objects.get(id=event_id)
         event.delete()
