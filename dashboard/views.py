@@ -3,7 +3,7 @@ import json
 import random
 import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django import forms
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm, AuthenticationForm
@@ -161,15 +161,18 @@ def otp_verify_view(request):
         expires = request.session.get('otp_expires')
 
         # Check expiry
-        if timezone.now().isoformat() > expires:
+        try:
+            expires_dt = datetime.fromisoformat(expires)
+        except Exception:
+            expires_dt = timezone.now()  # treat as expired if unparseable
+
+        if timezone.now() > expires_dt:
             error = 'Your code has expired. Please log in again.'
-            # Clear session
             for key in ('otp_code', 'otp_user_id', 'otp_expires'):
                 request.session.pop(key, None)
         elif entered != stored:
             error = 'Incorrect code. Please try again.'
         else:
-            # OTP correct — log the user in
             user = User.objects.get(id=request.session['otp_user_id'])
             login(request, user)
             for key in ('otp_code', 'otp_user_id', 'otp_expires'):

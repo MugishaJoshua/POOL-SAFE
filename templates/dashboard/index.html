@@ -338,18 +338,18 @@
 
   /* ── BUTTONS ── */
   .ack-btn {
-    background: transparent;
-    border: 1px solid var(--border2);
-    color: var(--muted);
-    font-size: 11px; font-weight: 500;
+    background: rgba(184,50,50,0.1);
+    border: 1px solid rgba(184,50,50,0.3);
+    color: #B83232;
+    font-size: 11px; font-weight: 600;
     padding: 6px 12px; border-radius: 6px; cursor: pointer;
     transition: all .15s; white-space: nowrap; align-self: flex-start;
     font-family: var(--font); min-height: 32px;
   }
   .ack-btn:hover {
-    border-color: var(--danger);
-    color: var(--danger);
-    background: rgba(184,50,50,0.08);
+    background: #B83232;
+    color: #fff;
+    border-color: #B83232;
   }
   .demo-btn {
     background: transparent; border: 1px solid var(--border2);
@@ -400,9 +400,9 @@
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .data-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 560px; }
   .data-table th {
-    font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    font-size: 10px; font-weight: 700; color: #3D2E1A; text-transform: uppercase;
     letter-spacing: 1px; padding: 10px 12px; text-align: left;
-    border-bottom: 1px solid var(--border); background: var(--surface);
+    border-bottom: 2px solid var(--border2); background: var(--surface);
     white-space: nowrap;
   }
   .data-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 12px; }
@@ -1236,13 +1236,13 @@ function loadHistory(page) {
       }
       return `
       <tr data-id="${e.id}">
-        <td style="color:var(--muted);">#${e.id}</td>
+        <td style="color:#3D2E1A;font-weight:600;">#${e.id}</td>
         <td><span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span>${thumbs}</td>
-        <td>${e.confidence}%</td>
+        <td style="font-weight:600;">${e.confidence}%</td>
         <td><span class="badge ${e.severity}">${e.severity}</span></td>
         <td>${e.location}</td>
-        <td style="color:var(--muted);">${e.timestamp}</td>
-        <td style="color:var(--warn);">● Active</td>
+        <td style="color:#5C4A2A;">${e.timestamp}</td>
+        <td style="color:var(--warn);font-weight:600;">● Active</td>
         <td><button class="ack-btn" onclick="ackFromHistory(${e.id})">Delete</button></td>
         <td><button class="btn-dl-event" onclick="downloadEventPDF(${e.id})">📥 PDF</button></td>
       </tr>`;
