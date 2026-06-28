@@ -1235,12 +1235,12 @@ function loadHistory(page) {
       }
       return `
       <tr data-id="${e.id}">
-        <td style="color:#3D2E1A;font-weight:600;">#${e.id}</td>
+        <td style="color:var(--text);font-weight:600;">#${e.id}</td>
         <td><span class="class-chip">${CLASS_ICONS[e.object_class] || ''} ${e.object_class}</span>${thumbs}</td>
         <td style="font-weight:600;">${e.confidence}%</td>
         <td><span class="badge ${e.severity}">${e.severity}</span></td>
         <td>${e.location}</td>
-        <td style="color:#5C4A2A;">${e.timestamp}</td>
+        <td style="color:var(--text);">${e.timestamp}</td>
         <td style="color:var(--warn);font-weight:600;">● Active</td>
         <td><button class="ack-btn" onclick="ackFromHistory(${e.id})">Delete</button></td>
         <td><button class="btn-dl-event" onclick="downloadEventPDF(${e.id})">📥 PDF</button></td>
